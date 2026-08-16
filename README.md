@@ -10,12 +10,12 @@ A collection of house rules for the Foundry VTT **dnd5e** system. Each rule is i
 
 ## Critical Dice
 
-Normal crit behavior is untouched — the dice still double as usual. This rule applies on top of that, to whatever was rolled.
+Normal crit behavior is untouched - the dice still double as usual. This rule applies on top of that, to whatever was rolled.
 
 1. A crit rolls its damage dice as normal (doubled).
-2. Every die from **every damage part** of that crit goes into one pool — weapon dice, a weapon's elemental dice, Sneak Attack, smites, all of it.
+2. Every die from **every damage part** of that crit goes into one pool - weapon dice, a weapon's elemental dice, Sneak Attack, smites, all of it.
 3. Each die's **gain** is `faces − rolled`.
-4. The **two dice with the largest gain** are maximized. Two per crit, total — not two per damage part.
+4. The **two dice with the largest gain** are maximized. Two per crit, total - not two per damage part.
 5. If two dice would gain the same, the larger die wins.
 
 ### Selection is by gain, not by lowest roll
@@ -30,26 +30,26 @@ Say a crit rolls `d12 → 5`, `d6 → 2`, `d4 → 1`:
 | d6 | 2 | 6 | **+4** ← picked |
 | d4 | 1 | 4 | +3 |
 
-The d4 rolled *lowest*, but it is **not** upgraded — it has the least to gain. The d12 and d6 are, for **+11** total. Picking the two lowest rolls instead would only have been +7.
+The d4 rolled *lowest*, but it is **not** upgraded - it has the least to gain. The d12 and d6 are, for **+11** total. Picking the two lowest rolls instead would only have been +7.
 
 Smaller example: a `d6` rolls 1 and a `d8` rolls 2. The d8 is ranked first (2 → 8 is +6, beating the d6's 1 → 6 at +5). With only two dice in the pool, both are upgraded anyway.
 
 ### What is never upgraded
 
-- Dice that already rolled their maximum — there's nothing to gain, and they won't waste a slot.
-- Dice dropped by a modifier such as `kh` or a reroll — they don't contribute to the total.
-- Subtracted dice, e.g. the `1d4` in `2d6 - 1d4` — maximizing those would make the damage *worse*.
+- Dice that already rolled their maximum - there's nothing to gain, and they won't waste a slot.
+- Dice dropped by a modifier such as `kh` or a reroll - they don't contribute to the total.
+- Subtracted dice, e.g. the `1d4` in `2d6 - 1d4` - maximizing those would make the damage *worse*.
 - Healing and temp HP, which use the same underlying roll class in dnd5e but aren't what this rule is for.
 
 ### What it looks like at the table
 
-The winning dice are **replaced in place**. A `4d6` crit that rolled `4, 6, 2, 5` becomes `6, 6, 6, 5` — the card reads as an ordinary, very good roll rather than a roll plus a bonus.
+The winning dice are **replaced in place**. A `4d6` crit that rolled `4, 6, 2, 5` becomes `6, 6, 6, 5` - the card reads as an ordinary, very good roll rather than a roll plus a bonus.
 
-Upgraded dice keep their normal die shape and are marked two ways: they render in a **brighter green** than Foundry's normal "rolled max" green, and they carry a small **▲ pip** in the corner. Both matter — a maximized 6 would otherwise be indistinguishable from a 6 that honestly rolled, and the pip keeps that readable without relying on the colour difference alone.
+Upgraded dice keep their normal die shape and are marked two ways: they render in a **brighter green** than Foundry's normal "rolled max" green, and they carry a small **▲ pip** in the corner. Both matter - a maximized 6 would otherwise be indistinguishable from a 6 that honestly rolled, and the pip keeps that readable without relying on the colour difference alone.
 
-The **natural rolled value** is also shown, struck through, in the die's bottom-left corner — a die reading `8` with a small `2` beneath it rolled a 2 and was upgraded. It's kept in the message data too (`trickyCriticalFrom` on the die result), so it survives a reload and a total can always be traced back.
+The **natural rolled value** is also shown, struck through, in the die's bottom-left corner - a die reading `8` with a small `2` beneath it rolled a 2 and was upgraded. It's kept in the message data too (`trickyCriticalFrom` on the die result), so it survives a reload and a total can always be traced back.
 
-Because dice belong to their own damage part throughout, damage typing is unaffected — a maximized fire die is still fire, and per-type resistances and immunities apply as normal.
+Because dice belong to their own damage part throughout, damage typing is unaffected - a maximized fire die is still fire, and per-type resistances and immunities apply as normal.
 
 **One consequence worth knowing:** the dice are edited before the roll is posted, so Dice So Nice animates the *upgraded* values. Nobody at the table sees the natural roll land.
 
@@ -94,7 +94,7 @@ Each rule is one file exporting `{ id, registerSettings?, registerPatches?, onRe
 
 ### How Critical Dice works
 
-dnd5e builds every roll in three stages — `buildConfigure`, then `buildEvaluate`, then `buildPost`. The rule wraps **`buildEvaluate`** with libWrapper, the only stage where all of a crit's damage parts are already rolled but nothing has been posted to chat. That matters because dnd5e rolls each damage part separately, while this rule pools across all of them.
+dnd5e builds every roll in three stages - `buildConfigure`, then `buildEvaluate`, then `buildPost`. The rule wraps **`buildEvaluate`** with libWrapper, the only stage where all of a crit's damage parts are already rolled but nothing has been posted to chat. That matters because dnd5e rolls each damage part separately, while this rule pools across all of them.
 
 Once the wrapped call returns:
 
@@ -104,11 +104,11 @@ Once the wrapped call returns:
 4. Rewrite each winner's result to its maximum face, recording the natural value and tagging it for styling.
 5. Recompute the total of each roll that changed.
 
-Step 5 is all that's needed because `DiceTerm#total` reads from its `results` array live — editing a result changes what that term contributes on its own; only the parent `Roll`'s cached total is stale.
+Step 5 is all that's needed because `DiceTerm#total` reads from its `results` array live - editing a result changes what that term contributes on its own; only the parent `Roll`'s cached total is stale.
 
 Two smaller libWrapper patches handle presentation: `DiceTerm#getResultCSS` adds the highlight class, and `DiceTerm#getResultLabel` injects the struck-through original value. Both only act when this rule's own marker is on the die, so dice elsewhere in the game are untouched.
 
-If anything in steps 1–5 throws, the error is logged and the roll is left exactly as dnd5e produced it — a bug here should never stop damage being dealt.
+If anything in steps 1-5 throws, the error is logged and the roll is left exactly as dnd5e produced it - a bug here should never stop damage being dealt.
 
 ## License
 
