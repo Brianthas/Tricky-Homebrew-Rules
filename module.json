@@ -2,7 +2,7 @@
   "id": "tricky-homebrew-rules",
   "title": "Tricky Homebrew Rules",
   "description": "A collection of house rules for the dnd5e system, each independently switchable. Currently: Critical Dice, which replaces the best dice of a critical hit with their maximum - chosen by potential gain rather than lowest roll, pooled across every damage part of the crit.",
-  "version": "0.3.0",
+  "version": "0.3.1",
   "compatibility": {
     "minimum": "13",
     "verified": "14"
