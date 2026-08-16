@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.3.1
+
+No changes to how the module behaves in play. Build and packaging only.
+
+- `CHANGELOG.md` is now included in the release zip. It was left out because the workflow lists files explicitly.
+- Workflow actions updated to releases that run on Node 24, since GitHub had started forcing the older ones off Node 20 and warning about it.
+
 ## 0.3.0
 
 **Renamed from Tricky Critical Dice.** The module is now a collection of house rules rather than a single one, with Critical Dice as the first.
