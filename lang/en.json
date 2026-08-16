@@ -1,12 +1,11 @@
 {
-  "TCD.ModuleName": "Tricky Critical Dice",
-  "TCD.CardTitle": "Tricky Critical",
-  "TCD.CardUpgrade": "d{faces}: {from} → {to}",
-  "TCD.BonusFlavor": "Tricky Critical",
-  "TCD.Settings.ModuleEnabled.Name": "Enable Tricky Critical Dice",
-  "TCD.Settings.ModuleEnabled.Hint": "Master switch for this world. When off, critical hits roll and total exactly as dnd5e normally would.",
-  "TCD.Settings.DiceCount.Name": "Dice Maximized Per Critical",
-  "TCD.Settings.DiceCount.Hint": "How many dice are maximized on each critical hit. This is the total across the whole crit, not per damage part - a Rogue's weapon dice and Sneak Attack dice compete for the same slots. Default 2.",
-  "TCD.Settings.ApplyToNPCs.Name": "Apply to NPCs",
-  "TCD.Settings.ApplyToNPCs.Hint": "When on (default), every critical hit is upgraded, including monsters'. When off, only player-owned characters benefit."
+  "THR.ModuleName": "Tricky Homebrew Rules",
+  "THR.Settings.ModuleEnabled.Name": "Enable Tricky Homebrew Rules",
+  "THR.Settings.ModuleEnabled.Hint": "Master switch for this world. When off, every rule below is inactive regardless of its own setting.",
+  "THR.Rules.CriticalDice.Enabled.Name": "Critical Dice: Maximize Best Dice",
+  "THR.Rules.CriticalDice.Enabled.Hint": "On a critical hit, the dice with the most to gain are replaced with their maximum. Selection is by potential gain, not by lowest roll - a 5 on a d12 beats a 1 on a d4. Normal critical dice doubling is unchanged; this applies on top of it.",
+  "THR.Rules.CriticalDice.Count.Name": "Critical Dice: Dice Maximized",
+  "THR.Rules.CriticalDice.Count.Hint": "How many dice are maximized on each critical hit. This is the total across the whole crit, not per damage part - a Rogue's weapon dice and Sneak Attack dice compete for the same slots. Default 2.",
+  "THR.Rules.CriticalDice.ApplyToNPCs.Name": "Critical Dice: Apply to NPCs",
+  "THR.Rules.CriticalDice.ApplyToNPCs.Hint": "When on (default), every critical hit is upgraded, including monsters'. When off, only player-owned characters benefit."
 }

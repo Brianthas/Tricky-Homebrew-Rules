@@ -1,10 +1,16 @@
-# Tricky Critical Dice
+# Tricky Homebrew Rules
 
-A Foundry VTT module for the **dnd5e** system. When a critical hit's damage is rolled, the two dice with the most to gain are maximized.
+A collection of house rules for the Foundry VTT **dnd5e** system. Each rule is independent and has its own on/off switch, plus a master switch for the whole module.
+
+| Rule | What it does |
+| --- | --- |
+| [Critical Dice](#critical-dice) | On a critical hit, the dice with the most to gain are replaced with their maximum. |
+
+---
+
+## Critical Dice
 
 Normal crit behavior is untouched — the dice still double as usual. This rule applies on top of that, to whatever was rolled.
-
-## The rule
 
 1. A crit rolls its damage dice as normal (doubled).
 2. Every die from **every damage part** of that crit goes into one pool — weapon dice, a weapon's elemental dice, Sneak Attack, smites, all of it.
@@ -35,37 +41,35 @@ Smaller example: a `d6` rolls 1 and a `d8` rolls 2. The d8 is ranked first (2 �
 - Subtracted dice, e.g. the `1d4` in `2d6 - 1d4` — maximizing those would make the damage *worse*.
 - Healing and temp HP, which use the same underlying roll class in dnd5e but aren't what this rule is for.
 
-## What it looks like at the table
+### What it looks like at the table
 
-The module **does not rewrite the rolled dice**. They roll for real and stay visible — if you use Dice So Nice, the 3D dice land on their natural values rather than silently showing the upgraded ones.
+The winning dice are **replaced in place**. A `4d6` crit that rolled `4, 6, 2, 5` becomes `6, 6, 6, 5` — the card reads as an ordinary, very good roll rather than a roll plus a bonus.
 
-The upgrade is added afterward as an explicit bonus, and the chat card spells out what happened:
+Upgraded dice keep their normal die shape and are marked two ways: they render in a **brighter green** than Foundry's normal "rolled max" green, and they carry a small **▲ pip** in the corner. Both matter — a maximized 6 would otherwise be indistinguishable from a 6 that honestly rolled, and the pip keeps that readable without relying on the colour difference alone.
 
-```
-Tricky Critical
-  d8: 2 → 8                    +6 fire
-  d6: 1 → 6                    +5 slashing
-```
+The **natural rolled value** is also shown, struck through, in the die's bottom-left corner — a die reading `8` with a small `2` beneath it rolled a 2 and was upgraded. It's kept in the message data too (`trickyCriticalFrom` on the die result), so it survives a reload and a total can always be traced back.
 
-So the card reconciles: the real dice in the tooltip, then the upgrade, then the total. If a number ever looks wrong, you can see exactly what the module did.
+Because dice belong to their own damage part throughout, damage typing is unaffected — a maximized fire die is still fire, and per-type resistances and immunities apply as normal.
 
-Each bonus keeps the damage type of the part its die came from, so per-type resistances and immunities still apply correctly when the damage is applied.
+**One consequence worth knowing:** the dice are edited before the roll is posted, so Dice So Nice animates the *upgraded* values. Nobody at the table sees the natural roll land.
 
-## Settings
+### Settings
 
-All are world-scoped (GM-controlled).
+All world-scoped (GM-controlled).
 
 | Setting | Default | What it does |
 | --- | --- | --- |
-| **Enable Tricky Critical Dice** | On | Master switch. When off, crits roll and total exactly as dnd5e normally would. |
-| **Dice Maximized Per Critical** | 2 | How many dice are upgraded per crit, total across the whole crit. |
-| **Apply to NPCs** | On | When off, only player-owned characters benefit. |
+| **Critical Dice: Maximize Best Dice** | On | Turns this rule on or off. |
+| **Critical Dice: Dice Maximized** | 2 | How many dice are upgraded per crit, total across the whole crit. |
+| **Critical Dice: Apply to NPCs** | On | When off, only player-owned characters benefit. |
 
 ### A note on "Maximize Critical Damage"
 
-dnd5e has its own optional **Maximize Critical Damage** setting (Powerful Critical), which maximizes the base damage dice and reduces the crit multiplier to 1. That leaves far fewer *rolled* dice for this module to work with, and the two rules stack into something neither of them describes.
+dnd5e has its own optional **Maximize Critical Damage** setting (Powerful Critical), which maximizes the base damage dice and reduces the crit multiplier to 1. That leaves far fewer *rolled* dice for this rule to work with, and the two stack into something neither of them describes.
 
-If it's enabled, this module logs a warning to the console (F12) rather than silently fighting it. Pick one or the other unless you specifically want both.
+If it's enabled, the module logs a warning to the console (F12) rather than silently fighting it. Pick one or the other unless you specifically want both.
+
+---
 
 ## Requirements
 
@@ -73,23 +77,38 @@ If it's enabled, this module logs a warning to the console (F12) rather than sil
 - dnd5e system 4.0.0+ (verified against 5.3.3)
 - [libWrapper](https://github.com/ruipin/fvtt-lib-wrapper)
 
-## How it works
+## Structure
 
-The whole module is one file: [`scripts/tricky-critical-dice.mjs`](scripts/tricky-critical-dice.mjs).
+```text
+scripts/
+  main.mjs              init/ready lifecycle, master setting, rule registry
+  lib/
+    constants.mjs       module id and title
+    wrapper.mjs         defensive libWrapper registration
+    settings.mjs        master + per-rule enabled checks
+  rules/
+    critical-dice.mjs   the Critical Dice rule
+```
 
-dnd5e builds every roll in three stages — `buildConfigure`, then `buildEvaluate`, then `buildPost`. This module wraps **`buildEvaluate`** with libWrapper, which is the only stage where all of a crit's damage parts are already rolled but nothing has been posted to chat yet. That matters because dnd5e rolls each damage part separately, while this house rule pools across all of them.
+Each rule is one file exporting `{ id, registerSettings?, registerPatches?, onReady? }`, listed in `main.mjs`'s `RULES` array. Nothing else in the module needs to know a rule exists. Rules are run through a wrapper that isolates failures, so one rule broken by a dnd5e update can't stop the others from registering.
+
+### How Critical Dice works
+
+dnd5e builds every roll in three stages — `buildConfigure`, then `buildEvaluate`, then `buildPost`. The rule wraps **`buildEvaluate`** with libWrapper, the only stage where all of a crit's damage parts are already rolled but nothing has been posted to chat. That matters because dnd5e rolls each damage part separately, while this rule pools across all of them.
 
 Once the wrapped call returns:
 
 1. Bail unless at least one roll is a critical damage roll.
 2. Walk every dice term in every roll, collecting each eligible result along with its gain.
 3. Sort by gain (ties → larger die) and take the top two.
-4. Group the winners by which roll they came from, and append a flat bonus term to each of those rolls equal to its winners' combined gain, flavored with that part's damage type.
-5. Recompute each modified roll's total, and record what changed on the pending chat message so the card can display it.
+4. Rewrite each winner's result to its maximum face, recording the natural value and tagging it for styling.
+5. Recompute the total of each roll that changed.
 
-Appending a flavored flat bonus rather than editing dice results is the same technique dnd5e itself uses for Powerful Critical, so it stays on a path the system already supports.
+Step 5 is all that's needed because `DiceTerm#total` reads from its `results` array live — editing a result changes what that term contributes on its own; only the parent `Roll`'s cached total is stale.
 
-If anything in step 1–5 throws, the error is logged and the roll is left exactly as dnd5e produced it — a bug here should never stop damage being dealt.
+Two smaller libWrapper patches handle presentation: `DiceTerm#getResultCSS` adds the highlight class, and `DiceTerm#getResultLabel` injects the struck-through original value. Both only act when this rule's own marker is on the die, so dice elsewhere in the game are untouched.
+
+If anything in steps 1–5 throws, the error is logged and the roll is left exactly as dnd5e produced it — a bug here should never stop damage being dealt.
 
 ## License
 

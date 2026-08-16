@@ -1,0 +1,54 @@
+/* Markers for dice this module pushed to their maximum.
+
+   Foundry draws each die as a grey SVG and tints it by filter - a natural max gets
+   `color: #18520b; filter: sepia(0.5) hue-rotate(60deg)` (see foundry2.css, `.dice-tooltip
+   .dice-rolls .roll.max`). So an upgraded die already renders green, identical to a die that
+   honestly rolled its maximum.
+
+   To separate the two, this pushes the same filter further rather than replacing the background:
+   the die keeps its normal shape and sprite, just in a more vivid green. A ▲ pip in the corner
+   carries the meaning for anyone who can't rely on the colour difference.
+
+   The `.max` in the selectors is what wins on specificity against the core rule above - an upgraded
+   die always sits at its maximum face, so it always carries `.max` too. */
+
+.dice-tooltip .dice-rolls .roll.max.tricky-critical-upgraded,
+.dice-tooltip .dice-rolls .roll.tricky-critical-upgraded,
+.dice-rolls .roll.max.tricky-critical-upgraded,
+.dice-rolls .roll.tricky-critical-upgraded {
+  color: #0a3d06;
+  filter: sepia(0.5) hue-rotate(60deg) saturate(2.4) brightness(1.12);
+}
+
+/* "Upgraded" pip, top-right. Mirrors how core marks exploded dice (`.roll.exploded:before`).
+
+   Note: the parent's `filter` also applies to this pseudo-element, so the colour below is tinted by
+   the rule above rather than rendering literally - it's picked for how it lands after the tint. */
+.dice-tooltip .dice-rolls .roll.tricky-critical-upgraded::after,
+.dice-rolls .roll.tricky-critical-upgraded::after {
+  content: "▲";
+  position: absolute;
+  top: -2px;
+  right: 1px;
+  font-size: 0.5em;
+  line-height: 1;
+  color: #b8860b;
+  text-shadow: 0 0 2px rgba(255, 255, 255, 0.9);
+  pointer-events: none;
+}
+
+/* The natural rolled value, bottom-left, struck through - "this was a 2". Injected into the result
+   label by the module (see onGetResultLabel); the die's own `position: relative` comes from core. */
+.dice-tooltip .dice-rolls .roll.tricky-critical-upgraded .tricky-critical-from,
+.dice-rolls .roll.tricky-critical-upgraded .tricky-critical-from {
+  position: absolute;
+  bottom: -1px;
+  left: 1px;
+  font-size: 0.5em;
+  font-weight: bold;
+  line-height: 1;
+  color: #2b2b2b;
+  text-decoration: line-through;
+  text-shadow: 0 0 2px rgba(255, 255, 255, 0.9);
+  pointer-events: none;
+}

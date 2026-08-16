@@ -63,4 +63,4 @@ run("git", ["tag", "-a", tag, "-m", tagMessage]);
 run("git", ["push", "origin", tag]);
 
 console.log(`\nReleased ${tag}. GitHub Actions will build and publish it shortly:`);
-console.log("https://github.com/Brianthas/Tricky-Critical-Dice/actions");
+console.log("https://github.com/Brianthas/Tricky-Homebrew-Rules/actions");

@@ -1,8 +1,8 @@
 {
-  "id": "tricky-critical-dice",
-  "title": "Tricky Critical Dice",
-  "description": "A house rule for critical hits in dnd5e: after a crit's damage dice are rolled, the two dice with the most to gain are maximized. Selection is by potential gain, not by lowest roll - a 5 on a d12 beats a 1 on a d4. The real dice still roll and stay visible; the upgrade is added as an explicit bonus.",
-  "version": "0.1.0",
+  "id": "tricky-homebrew-rules",
+  "title": "Tricky Homebrew Rules",
+  "description": "A collection of house rules for the dnd5e system, each independently switchable. Currently: Critical Dice, which replaces the best dice of a critical hit with their maximum - chosen by potential gain rather than lowest roll, pooled across every damage part of the crit.",
+  "version": "0.3.0",
   "compatibility": {
     "minimum": "13",
     "verified": "14"
@@ -34,10 +34,10 @@
     ]
   },
   "esmodules": [
-    "scripts/tricky-critical-dice.mjs"
+    "scripts/main.mjs"
   ],
   "styles": [
-    "styles/tricky-critical-dice.css"
+    "styles/critical-dice.css"
   ],
   "languages": [
     {
@@ -46,10 +46,10 @@
       "path": "lang/en.json"
     }
   ],
-  "url": "https://github.com/Brianthas/Tricky-Critical-Dice",
-  "manifest": "https://github.com/Brianthas/Tricky-Critical-Dice/releases/latest/download/module.json",
-  "download": "https://github.com/Brianthas/Tricky-Critical-Dice/releases/latest/download/module.zip",
-  "readme": "https://github.com/Brianthas/Tricky-Critical-Dice/blob/main/README.md",
-  "bugs": "https://github.com/Brianthas/Tricky-Critical-Dice/issues",
+  "url": "https://github.com/Brianthas/Tricky-Homebrew-Rules",
+  "manifest": "https://github.com/Brianthas/Tricky-Homebrew-Rules/releases/latest/download/module.json",
+  "download": "https://github.com/Brianthas/Tricky-Homebrew-Rules/releases/latest/download/module.zip",
+  "readme": "https://github.com/Brianthas/Tricky-Homebrew-Rules/blob/main/README.md",
+  "bugs": "https://github.com/Brianthas/Tricky-Homebrew-Rules/issues",
   "license": "LICENSE"
 }

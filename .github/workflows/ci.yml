@@ -15,7 +15,7 @@ jobs:
           node-version: "22"
 
       - name: Check JavaScript syntax
-        run: node --check scripts/tricky-critical-dice.mjs
+        run: for f in $(find scripts -name '*.mjs'); do node --check "$f"; done
 
       - name: Validate module.json
         run: node -e "JSON.parse(require('fs').readFileSync('module.json','utf8')); console.log('module.json OK')"
