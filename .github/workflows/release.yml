@@ -11,14 +11,14 @@ jobs:
     permissions:
       contents: write
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
       - name: Zip module
         run: |
-          zip -r module.zip module.json scripts lang styles LICENSE README.md
+          zip -r module.zip module.json scripts lang styles LICENSE README.md CHANGELOG.md
 
       - name: Create release
-        uses: softprops/action-gh-release@v2
+        uses: softprops/action-gh-release@v3
         with:
           files: |
             module.json
