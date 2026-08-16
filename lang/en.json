@@ -1,0 +1,12 @@
+{
+  "TCD.ModuleName": "Tricky Critical Dice",
+  "TCD.CardTitle": "Tricky Critical",
+  "TCD.CardUpgrade": "d{faces}: {from} → {to}",
+  "TCD.BonusFlavor": "Tricky Critical",
+  "TCD.Settings.ModuleEnabled.Name": "Enable Tricky Critical Dice",
+  "TCD.Settings.ModuleEnabled.Hint": "Master switch for this world. When off, critical hits roll and total exactly as dnd5e normally would.",
+  "TCD.Settings.DiceCount.Name": "Dice Maximized Per Critical",
+  "TCD.Settings.DiceCount.Hint": "How many dice are maximized on each critical hit. This is the total across the whole crit, not per damage part - a Rogue's weapon dice and Sneak Attack dice compete for the same slots. Default 2.",
+  "TCD.Settings.ApplyToNPCs.Name": "Apply to NPCs",
+  "TCD.Settings.ApplyToNPCs.Hint": "When on (default), every critical hit is upgraded, including monsters'. When off, only player-owned characters benefit."
+}
