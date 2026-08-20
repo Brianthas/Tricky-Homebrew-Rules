@@ -163,15 +163,22 @@ function listed(actor) {
  * spell effect with a countdown, false for Jack of All Trades, Improved Critical, a fighting style
  * and the rest of a character's permanent kit.
  *
- * Aura copies are the exception it gets wrong for this purpose. They carry no duration, so they are
- * not temporary by that test, but they appear and disappear as people walk around and are exactly
- * the sort of thing you want to see. A paladin's aura landing on you belongs on this list.
+ * An aura copy carries no duration of its own, so that test alone would always call it permanent.
+ * It is as temporary as the aura behind it: Aura of Life runs for ten minutes and belongs here,
+ * while a paladin's Aura of Protection is a permanent class feature and does not, even though the
+ * copy itself comes and goes as people move.
  *
  * @param {object} effect
  * @returns {boolean}
  */
 function isRunning(effect) {
-  return effect.isTemporary || !!effect.getFlag(MODULE_ID, FROM_AURA);
+  if (effect.isTemporary) return true;
+
+  const fromAura = effect.getFlag(MODULE_ID, FROM_AURA);
+  if (!fromAura) return false;
+
+  const source = fromUuidSync(fromAura, { strict: false });
+  return !!source?.isTemporary;
 }
 
 /**

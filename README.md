@@ -259,11 +259,11 @@ Only the active GM performs the removals, so several clients seeing the same tur
 
 ## Effects Panel
 
-Select a token and what is running on it appears as a row of icons at the top right, beside the sidebar. The same idea as the panel pf2e ships, which dnd5e has no equivalent of: effects otherwise live on the character sheet, two clicks and a tab away from the table.
+Select a token and what is running on it appears as a column of icons at the top right, beside the sidebar. The same idea as the panel pf2e ships, which dnd5e has no equivalent of: effects otherwise live on the character sheet, two clicks and a tab away from the table.
 
 Just the icons. Hover one for its name, how long it has left, and what the cross will do. Click the icon to open the effect, or the cross in its corner to remove it, so removal is always the deliberate action rather than the accidental one.
 
-The panel is deliberately opaque. A status readout that fades into the map behind it is one you stop trusting.
+The backdrop is mostly opaque on purpose. Foundry's faded panel style reads nicely over artwork but leaves the icons hard to pick out, and a status readout you have to squint at is one you stop checking.
 
 ### What counts as running
 
@@ -273,9 +273,9 @@ Only things happening **to** the creature, not the permanent kit that makes it w
 | --- | --- |
 | Shield, Bless, spell effects with a countdown | Jack of All Trades, Improved Critical, Remarkable Athlete |
 | Concentration markers | Fighting styles, Draconic Resilience |
-| Auras reaching the token from elsewhere | A paladin's own Aura of Protection, which is a class feature |
+| An aura reaching the token from a spell, like Aura of Life | An aura from a permanent feature, like Aura of Protection |
 
-Aura copies are the one case `isTemporary` gets wrong for this purpose. They carry no duration, so Foundry does not call them temporary, but they appear and vanish as people walk around and a paladin's aura landing on you is exactly what this panel is for. They are counted as running.
+An aura copy carries no duration of its own, so that test alone would call every one of them permanent. A copy is judged by the aura behind it instead: Aura of Life runs for ten minutes and belongs here, while a paladin's Aura of Protection is a permanent class feature and does not, even though the copy itself comes and goes as people move.
 
 A setting switches the panel back to listing everything active, permanent features included.
 

@@ -6,8 +6,8 @@
 
 - Selecting a token now shows what is running on it as a row of icons at the top right beside the sidebar, in the style of the panel pf2e ships. dnd5e keeps effects on the character sheet, two clicks and a tab away from the table.
 - Icons only, with the name, remaining time and what the cross will do on hover. Clicking the icon opens the effect, so removal is always deliberate. An effect granted by an item is switched off rather than deleted, since deleting it would edit the character.
-- Lists only what is happening **to** the creature: spell effects, conditions, concentration and auras reaching it. Permanent kit like Jack of All Trades, Improved Critical or a fighting style is left off, with a setting to include it. Aura copies are counted as running despite carrying no duration, because they come and go as people move.
-- Opaque rather than faded, since a status readout that blends into the map is one you stop trusting.
+- Lists only what is happening **to** the creature: spell effects, conditions, concentration, and auras from spells. Permanent kit like Jack of All Trades, Improved Critical or a fighting style is left off, with a setting to include it. An aura copy is judged by the aura behind it, so Aura of Life is listed and a paladin's permanent Aura of Protection is not.
+- A column at the right hand edge, on a backdrop solid enough to read the icons against artwork.
 - A copy applied by an aura cannot be removed here, because the Auras rule would put it straight back. It names the token it radiates from instead. Where an aura affects its own token, only the aura is listed rather than the aura and its copy under the same name.
 - Both settings are per person rather than per world.
 
