@@ -22,3 +22,9 @@ jobs:
 
       - name: Validate lang/en.json
         run: node -e "JSON.parse(require('fs').readFileSync('lang/en.json','utf8')); console.log('lang/en.json OK')"
+
+      - name: Check localisation keys
+        run: node tools/check-lang.mjs
+
+      - name: Run tests
+        run: node --test test/*.test.mjs

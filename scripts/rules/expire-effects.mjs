@@ -148,7 +148,7 @@ async function sweepExpired() {
  * @param {object} effect
  * @returns {boolean}
  */
-function isExpired(effect) {
+export function isExpired(effect) {
   if (!effect) return false;
   if (effect.disabled) return false;
 

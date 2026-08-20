@@ -171,7 +171,7 @@ function listed(actor) {
  * @param {object} effect
  * @returns {boolean}
  */
-function isRunning(effect) {
+export function isRunning(effect) {
   if (effect.isTemporary) return true;
 
   const fromAura = effect.getFlag(MODULE_ID, FROM_AURA);

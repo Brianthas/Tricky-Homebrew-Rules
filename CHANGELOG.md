@@ -1,5 +1,11 @@
 # Changelog
 
+## Unreleased
+
+- Added a **test suite** covering the parts of the module that are ordinary logic: ring colours, effect naming, expiry, bonus formatting, aura liveness and light comparison. 39 tests, no Foundry required, run by CI on every push. Several of tonight's bugs came from two places deciding the same thing separately, which is exactly what a test pins down.
+- Added a **localisation key check**, also in CI. Reintroducing the raw-key bug that shipped in 0.12.0 now fails the build and names the key and file. Keys assembled by transforming a value fail outright, since that is the shape that broke; keys reached through a prefix helper are reconstructed and checked.
+- Ring style labels are written out rather than built by capitalising the style name, which is what caused that bug.
+
 ## 0.14.0
 
 - **Individual auras can be switched on and off from the token HUD.** Clicking the aura button still flips everything, which is right for a paladin with one aura and too blunt for one also concentrating on a spell. Right clicking opens a list with a switch per aura, and the tooltip says so only when there is more than one.

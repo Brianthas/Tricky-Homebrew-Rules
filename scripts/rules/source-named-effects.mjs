@@ -114,7 +114,7 @@ function sourceNameFor(effect, origin) {
  * @param {object} item
  * @returns {string|null}
  */
-function nameFromItem(effect, item) {
+export function nameFromItem(effect, item) {
   if (!item?.name) return null;
 
   // Strip any leading copies of the item name before deciding anything.

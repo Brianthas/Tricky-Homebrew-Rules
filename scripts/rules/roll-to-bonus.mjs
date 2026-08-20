@@ -23,7 +23,7 @@ const SOURCE_ITEM_TYPES = new Set(["feat", "spell"]);
  * @param {number} value
  * @returns {string}
  */
-function formatBonus(value) {
+export function formatBonus(value) {
   return value < 0 ? ` - ${Math.abs(value)}` : ` + ${value}`;
 }
 

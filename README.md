@@ -438,6 +438,15 @@ Per aura, on the effect itself: radius, reaches (anyone, allies, enemies), affec
 - dnd5e system 4.0.0+ (verified against 5.3.3)
 - [libWrapper](https://github.com/ruipin/fvtt-lib-wrapper)
 
+## Tests
+
+```
+node --test test/*.test.mjs   # unit tests, no Foundry needed
+node tools/check-lang.mjs     # every localisation key exists
+```
+
+Both run in CI on every push. The tests cover the pure logic only: anything needing a canvas is tested in the live client instead, because a stub rich enough to be convincing is a second implementation to keep in step.
+
 ## Structure
 
 ```text

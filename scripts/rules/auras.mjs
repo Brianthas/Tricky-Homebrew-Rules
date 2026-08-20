@@ -46,6 +46,22 @@ const RING_STYLES = {
 const RING_STYLE_DEFAULT = "solid";
 
 /**
+ * What each drawn style is called on screen.
+ *
+ * Written out rather than built from the style name. Deriving the key by capitalising it produced
+ * `StyleSolid` while the strings were written as `Stylesolid`, so every entry in the dropdown
+ * displayed its own localisation key, and it shipped that way. A literal cannot drift from itself,
+ * and a missing one is caught by `tools/check-lang.mjs` before it reaches a release.
+ */
+const RING_STYLE_LABELS = {
+  solid: "THR.Rules.Auras.Config.StyleSolid",
+  pulse: "THR.Rules.Auras.Config.StylePulse",
+  breathe: "THR.Rules.Auras.Config.StyleBreathe",
+  glow: "THR.Rules.Auras.Config.StyleGlow",
+  rotate: "THR.Rules.Auras.Config.StyleRotate"
+};
+
+/**
  * Styles that hand the ring to Foundry's own light shaders instead of drawing it here.
  *
  * Stored as `light:<animation>`, so one dropdown covers both kinds and an unknown value falls back
@@ -61,7 +77,7 @@ const LIGHT_STASH = "lightStash";
  * @param {string} style
  * @returns {string|null}
  */
-function lightAnimationOf(style) {
+export function lightAnimationOf(style) {
   if (typeof style !== "string" || !style.startsWith(LIGHT_PREFIX)) return null;
   const key = style.slice(LIGHT_PREFIX.length);
   return CONFIG.Canvas.lightAnimations?.[key] ? key : null;
@@ -384,7 +400,7 @@ function ensureSourceIcons(sources) {
  * @param {object} config
  * @returns {boolean}
  */
-function auraIsLive(effect, config) {
+export function auraIsLive(effect, config) {
   if (!config?.enabled) return false;
   if (effect.disabled || effect.isSuppressed) return false;
   if (config.combatOnly && !game.combat?.started) return false;
@@ -803,7 +819,7 @@ const RING_TICKER = "trickyAuraRingTicker";
  *
  * @param {object} token
  */
-function ringColour(config) {
+export function ringColour(config) {
   const chosen = String(config?.colour ?? "").trim();
   if (/^#[0-9a-f]{6}$/i.test(chosen)) return Number.parseInt(chosen.slice(1), 16);
   return (config?.disposition === DISPOSITION.ENEMIES) ? AUTO_RING_COLOUR.ENEMIES : AUTO_RING_COLOUR.DEFAULT;
@@ -815,7 +831,7 @@ function ringColour(config) {
  * @param {number} value
  * @returns {string}
  */
-function toHex(value) {
+export function toHex(value) {
   return `#${value.toString(16).padStart(6, "0")}`;
 }
 
@@ -1030,7 +1046,7 @@ function lightDataFor(config, feet) {
  * @param {object} b
  * @returns {boolean}
  */
-function sameLight(a, b) {
+export function sameLight(a, b) {
   if (!a || !b) return false;
   const keys = ["dim", "bright", "luminosity", "alpha", "color", "attenuation", "coloration", "angle"];
   for (const key of keys) if (a[key] !== b[key]) return false;
@@ -1387,7 +1403,7 @@ async function promptAuraConfig(effect) {
         <select name="style">
           <optgroup label="${L("StyleGroupDrawn")}">
             ${Object.keys(RING_STYLES).map(key =>
-              `<option value="${key}"${(current.style ?? RING_STYLE_DEFAULT) === key ? " selected" : ""}>${L("Style" + key.charAt(0).toUpperCase() + key.slice(1))}</option>`
+              `<option value="${key}"${(current.style ?? RING_STYLE_DEFAULT) === key ? " selected" : ""}>${game.i18n.localize(RING_STYLE_LABELS[key])}</option>`
             ).join("")}
           </optgroup>
           <optgroup label="${L("StyleGroupLight")}">
@@ -1542,7 +1558,7 @@ async function promptKnownAuraSetup() {
       <td>${foundry.utils.escapeHTML(entry.item)}</td>
       <td>${foundry.utils.escapeHTML(entry.actor)}</td>
       <td><input type="text" name="radius.${i}" value="${foundry.utils.escapeHTML(String(entry.radius))}" style="width:8em"></td>
-      <td>${label(entry.known.disposition === -1 ? "Enemies" : "Allies")}</td>
+      <td>${entry.known.disposition === -1 ? label("Enemies") : label("Allies")}</td>
       <td>${entry.already ? label("Already") : ""}</td>
     </tr>`).join("");
 
