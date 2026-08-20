@@ -410,6 +410,8 @@ Distance uses Foundry's own grid measurement and the wall check uses its movemen
 
 The module settings have a **Set Up Known Auras** button. It finds auras that official content provides and configures them together, so you are not visiting each feature by hand.
 
+Where a feature widens with level the table holds a formula rather than a number, so a paladin's aura goes from 10 feet to 30 at 18th level without anybody remembering to change it.
+
 Radius and reach come from a built-in table rather than from the item, because the item does not record them. Scanning a real world for items shaped like "self, 30 foot radius" turns up three detection spells for every genuine aura, and Aura of Protection has no range, target or activity at all: its ten feet exists only in the description text. Inference would configure the wrong things and miss the obvious ones.
 
 Nothing is written until you approve the review screen, and radii can be corrected there. Paladin auras widen to 30 feet at 18th level, which the table does not track, so raise those before applying.

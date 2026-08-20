@@ -2,6 +2,8 @@
 
 ## 0.14.0
 
+- **Paladin auras now widen at 18th level on their own.** Set Up Known Auras wrote a flat 10 feet, which someone would have had to remember to change mid-campaign. It now writes `10 + 20 * floor(@classes.paladin.levels / 18)`, which is 10 below 18th and 30 from 18th to 20th. The Aura dialog offers the same formula when configuring one by hand.
+
 - **Auras now account for elevation.** They were measured purely on the flat grid, so a dragon hovering sixty feet up sat inside every aura on the ground and a paladin buffed an ally flying overhead. Foundry does the measuring once the waypoints carry a height, using the scene's own diagonal rule, so a token a hundred feet up is a hundred feet away.
 - Height is read from the token's stored elevation rather than its animated one. Foundry animates a climb over several seconds, and reconciling against a value partway up never corrected itself afterwards, because animation frames are not document changes.
 

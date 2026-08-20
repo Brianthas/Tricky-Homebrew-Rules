@@ -8,19 +8,28 @@
  * prose. Guessing from templates or description text configures the wrong things and misses the
  * obvious ones.
  *
- * Radii are the values at the level the feature is gained. Paladin auras widen to 30 feet at 18th
- * level, which is not represented here: the review screen shows the radius before anything is
- * written, so it can be corrected there.
+ * Radii are the values at the level the feature is gained. Where a feature widens with level, a
+ * `scaling` formula expresses it and is used in place of the flat number when the actor can
+ * actually resolve it. Paladin auras go from 10 feet to 30 at 18th level, and `floor(levels / 18)`
+ * is 0 below 18th and 1 from 18th to 20th, which is exactly the step needed.
  *
  * Keys are matched against the item's name, case-insensitively.
  */
+/**
+ * A paladin's aura radius. Ten feet, thirty from 18th level.
+ *
+ * Written as a formula rather than a flat number so it follows the character up, instead of being a
+ * value somebody has to remember to change mid-campaign.
+ */
+const PALADIN_AURA_RADIUS = "10 + 20 * floor(@classes.paladin.levels / 18)";
+
 export const KNOWN_AURAS = {
   // Paladin class features
-  "aura of protection": { radius: 10, disposition: 1, applyToSelf: true },
-  "aura of courage": { radius: 10, disposition: 1, applyToSelf: true },
-  "aura of warding": { radius: 10, disposition: 1, applyToSelf: true },
-  "aura of alacrity": { radius: 10, disposition: 1, applyToSelf: true },
-  "aura of hate": { radius: 10, disposition: 1, applyToSelf: true },
+  "aura of protection": { radius: 10, disposition: 1, applyToSelf: true, scaling: PALADIN_AURA_RADIUS },
+  "aura of courage": { radius: 10, disposition: 1, applyToSelf: true, scaling: PALADIN_AURA_RADIUS },
+  "aura of warding": { radius: 10, disposition: 1, applyToSelf: true, scaling: PALADIN_AURA_RADIUS },
+  "aura of alacrity": { radius: 10, disposition: 1, applyToSelf: true, scaling: PALADIN_AURA_RADIUS },
+  "aura of hate": { radius: 10, disposition: 1, applyToSelf: true, scaling: PALADIN_AURA_RADIUS },
 
   // Paladin and cleric spells
   "aura of life": { radius: 30, disposition: 1, applyToSelf: true },

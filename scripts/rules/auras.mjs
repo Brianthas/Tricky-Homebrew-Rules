@@ -1278,7 +1278,8 @@ async function promptAuraConfig(effect) {
     ? null
     : (knownAuraFor(effect.name)
       ?? (effect.parent?.documentName === "Item" ? knownAuraFor(effect.parent.name) : null));
-  const current = stored ?? { ...DEFAULTS, ...known, enabled: true };
+  const current = stored
+    ?? { ...DEFAULTS, ...known, radius: knownRadiusFor(known, actorOf(effect)), enabled: true };
   const L = key => game.i18n.localize(`THR.Rules.Auras.Config.${key}`);
   const checked = value => (value ? " checked" : "");
   const selected = (a, b) => (a === b ? " selected" : "");
@@ -1440,6 +1441,7 @@ function findKnownAuras() {
           item: item.name,
           effect,
           known,
+          radius: knownRadiusFor(known, actor),
           already: !!effect.getFlag(MODULE_ID, AURA)
         });
       }
@@ -1447,6 +1449,23 @@ function findKnownAuras() {
   }
 
   return found;
+}
+
+/**
+ * The radius to give a known aura on one actor.
+ *
+ * A scaling formula is only worth writing if this actor can resolve it. A creature carrying a
+ * paladin aura without paladin levels, an NPC statblock for instance, would resolve the formula to
+ * nothing and end up with a radius of zero, which reads as an aura that is switched on and reaches
+ * nobody. Those get the flat value instead.
+ *
+ * @param {object} known
+ * @param {object} actor
+ * @returns {string}
+ */
+function knownRadiusFor(known, actor) {
+  if (known?.scaling && actor && resolveNumber(known.scaling, actor) > 0) return known.scaling;
+  return String(known?.radius ?? DEFAULTS.radius);
 }
 
 /**
@@ -1465,7 +1484,7 @@ async function promptKnownAuraSetup() {
       <td style="text-align:center"><input type="checkbox" name="pick.${i}"${entry.already ? "" : " checked"}></td>
       <td>${foundry.utils.escapeHTML(entry.item)}</td>
       <td>${foundry.utils.escapeHTML(entry.actor)}</td>
-      <td><input type="text" name="radius.${i}" value="${entry.known.radius}" style="width:4em"></td>
+      <td><input type="text" name="radius.${i}" value="${foundry.utils.escapeHTML(String(entry.radius))}" style="width:8em"></td>
       <td>${label(entry.known.disposition === -1 ? "Enemies" : "Allies")}</td>
       <td>${entry.already ? label("Already") : ""}</td>
     </tr>`).join("");
@@ -1501,7 +1520,7 @@ async function promptKnownAuraSetup() {
       await entry.effect.update({ showIcon: CONST.ACTIVE_EFFECT_SHOW_ICON.NEVER });
       await entry.effect.setFlag(MODULE_ID, AURA, {
         enabled: true,
-        radius: String(result[`radius.${i}`] ?? entry.known.radius).trim() || String(entry.known.radius),
+        radius: String(result[`radius.${i}`] ?? entry.radius).trim() || String(entry.radius),
         disposition: entry.known.disposition,
         applyToSelf: entry.known.applyToSelf,
         respectWalls: true,
