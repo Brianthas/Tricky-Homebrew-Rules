@@ -106,3 +106,44 @@
 .tricky-maximized i {
   font-size: 0.9em;
 }
+
+/* -------------------------------------------- */
+/*  Auras                                       */
+/* -------------------------------------------- */
+
+/* Token HUD toggle. Foundry's own .control-icon supplies the shape and hover; this only needs to
+   show whether the auras are currently radiating. */
+
+.tricky-aura-toggle.active {
+  color: #ffe9a3;
+  border-color: #b8860b;
+  box-shadow: 0 0 6px rgba(184, 134, 11, 0.7);
+}
+
+/* Button added to the effect config sheet, opening the aura settings. */
+.tricky-aura-config {
+  flex: 0 0 auto;
+  margin-right: 0.5em;
+}
+
+/* Headings inserted into this module's settings section, one per rule. */
+.tricky-settings-group {
+  margin: 1em 0 0.4em;
+  padding-bottom: 0.2em;
+  border-bottom: 1px solid var(--color-border-light-tertiary, rgba(0, 0, 0, 0.2));
+  font-size: var(--font-size-14, 14px);
+  font-weight: bold;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+  opacity: 0.85;
+}
+
+.tricky-settings-group:first-of-type {
+  margin-top: 0;
+}
+
+/* Token HUD control for showing or hiding an aura's range ring. */
+.tricky-aura-ring-toggle.active {
+  color: #ffe9a3;
+  border-color: #b8860b;
+}

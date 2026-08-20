@@ -1,5 +1,77 @@
 # Changelog
 
+## 0.11.0
+
+- Auras now draw their range on the token, measured from the token's edge rather than its centre, which is what "within 10 feet" means at the table. Rings are gold for auras reaching allies and red for those reaching enemies, and sit behind the token art so they never obscure the creature.
+- A second token HUD control shows or hides the ring, separately from the switch that turns the aura itself on and off. A permanent aura usually wants to stay running with its ring out of the way, so those are different intentions and get different buttons.
+- Also configurable per aura from its Aura dialog.
+
+## 0.10.1
+
+- Module settings are now grouped under a heading per rule. Six rules had put a lot of switches into one undifferentiated list. The grouping is derived from each setting's own name rather than a second hand-maintained list, so a rule adding a setting later lands in the right place on its own, and each rule's button sits with its switches instead of being pushed to the top with every other module button.
+- New auras now default to reaching **tokens on the same side** rather than anyone in range. Nearly every aura in play buffs your own side, and an aura that quietly helps the enemy is a worse failure than one that needs widening. Existing auras keep whatever they were set to.
+
+## 0.10.0
+
+- New **Set Up Known Auras** button in the module settings. It finds auras that official content provides, such as Aura of Protection, Spirit Guardians and Crusader's Mantle, and configures them in a single reviewed pass rather than one at a time.
+- The radius and reach come from a built-in table, because the data does not record them. A scan of a real world finds four items shaped like "self, 30 foot radius", of which three are detection spells rather than auras, while Aura of Protection carries no range, target or activity at all and its ten feet appears only in prose. Inferring would configure Detect Magic as an aura and miss the obvious one.
+- Nothing is written until the review screen is approved, and every radius can be corrected there first. Paladin auras widen to 30 feet at 18th level, which the table does not know about, so those are worth raising before applying.
+
+## 0.9.11
+
+- **Fixed two paladins stacking each other's auras.** Standing together, each was receiving their own aura plus the other's, so a pair with +5 and +10 both ended up on +15 instead of +10. Introduced in 0.9.7: the owner stopped receiving a copy of their own aura, which quietly took their own aura out of the best-of comparison and let a weaker one from someone else pile on top.
+- The owner receives a copy like any other recipient again, so every aura of the same name competes on equal footing. The duplicate icon that 0.9.7 was trying to solve is handled by hiding the source template's icon instead, since the copy already carries one.
+
+## 0.9.10
+
+- **The token radiating an aura shows its icon again.** Since 0.9.7 the owner benefits from the aura's own effect rather than a copy, and that effect never expires, so Foundry's default of showing icons only for temporary effects hid it. The one token with no sign of the aura was the one emitting it. An aura's effect is now marked to always show its icon, applied when it is configured and repaired automatically for auras set up earlier.
+
+## 0.9.9
+
+- **Applied auras are now refreshed, not just created and deleted.** A copy already sitting on someone was left untouched by every later pass, so it kept whatever it was given when it first landed. A paladin raising their Charisma, or any edit to the aura itself, never reached anyone already standing in it. Copies are now compared against what they should say and updated when they differ, which also means the 0.9.8 fix reaches auras that were applied before it.
+
+## 0.9.8
+
+- **Fixed auras handing out the recipient's own numbers instead of the source's.** A paladin's Aura of Protection is written as `@abilities.cha.mod`, and that formula was being copied verbatim onto everyone in range, so each ally resolved it against their own Charisma. A paladin with Charisma 30 granted an ally with Charisma 18 a bonus of +4 rather than +10. Actor references are now resolved against the actor radiating the aura at the moment the copy is made. Dice are left alone, so an aura granting `1d4` is still rolled by the recipient.
+
+## 0.9.7
+
+- **Fixed an aura showing two icons on its own token.** The owner carried both the source effect and a copy created for itself, one document each, one icon each. The owner is no longer given a copy: when an aura affects its own token the source effect simply applies, which is what it would have done anyway, and it is only neutralised when the owner is meant to be excluded.
+
+## 0.9.6
+
+- **Fixed auras applying a move behind.** Moving the token an aura was reaching did nothing, while moving the aura's owner updated it, and every result trailed the previous position. Both `updateToken` and `moveToken` fire when a movement is accepted rather than when it has arrived, and the document takes the length of the movement animation to catch up, measured at around 800ms on a single square step. Reconciling 100ms after the hook therefore measured from where the token used to be. Movement now waits on `Token#movementAnimationPromise`, which is what Foundry provides for this, with a timeout so a stalled promise cannot leave auras frozen.
+- Other token updates such as disposition, visibility and size still reconcile immediately, since those take effect at once.
+
+## 0.9.5
+
+Two fixes to the Auras rule found in live testing.
+
+- **Auras switched on and off at inconsistent distances.** Range was measured between raw pixel centres, which reads correctly only while both tokens sit neatly on the grid. Dropped off-grid, the same apparent distance measured 11.56 one way and 8.5 the other, so an aura would refuse to apply at what looked like 10 feet and then apply a step later. Distance is now measured between the grid spaces the tokens occupy, matching both the grid and how 5e measures. Every cell of a large token is considered, so a big creature reaches from its nearest square rather than its middle.
+- **The source effect applied twice to its own owner.** Neutralising an aura effect by clearing its changes failed silently, because dnd5e exposes `changes` as a getter and it cannot be reassigned. The prepared array is a copy of the stored one, so it is now emptied in place instead.
+
+## 0.9.3
+
+- The Aura dialog now opens with "Radiate as an aura" already ticked for an effect that is not yet an aura. Opening it means the intent is to create one, and starting the switch off meant filling in radius and disposition, saving, and watching nothing happen.
+
+## 0.9.2
+
+- Fixed Effect Names doubling a prefix that was already there, turning `Draconic Resilience: Armor` into `Draconic Resilience: Draconic Resilience: Armor`. Content frequently names its own effects after the item already, and the rule prefixed them again without checking.
+- The naming is now idempotent: leading copies of the item name are stripped before deciding, so a correct name recomputes to itself and a doubled one is repaired. Re-running the sweep fixes anything the previous version mangled.
+
+## 0.9.1
+
+- Effect Names now covers passive effects living on a character's own items, so a paladin's Aura of Protection reads as such instead of dnd5e's flavour name "Protected". These transfer onto the actor and show in its effects list, but were never renamed because they are not applied to the actor and never pass through effect creation. The sweep is their only route, and it now walks items as well as actors.
+- Only items owned by an actor are touched. Owned items are copies, so this rewrites the character's own feature and never reaches world or compendium content.
+
+## 0.9.0
+
+- New rule: **Auras**. Any effect can radiate to tokens within a radius and keep up as they move. Configure it from the Aura button on an effect's sheet: radius, who it reaches, whether walls block it, whether it affects its own token, and whether it only runs in combat.
+- Where two tokens radiate the same aura only the strongest applies, matching 5e. Strength comes from the aura's own change values, so two paladins with different Charisma compare correctly with no configuration.
+- A token HUD button turns every aura on that token on or off in one click.
+- Works by reconciling rather than tracking enter and exit events: each pass recomputes the whole picture and applies the difference, so a missed trigger corrects itself instead of stranding a buff on someone who walked away.
+- Credits Aura Effects by Michael Roth (MIT) in the README for two ideas taken from its design.
+
 ## 0.8.1
 
 - Bonus effects are now named for what they do as well as where they came from, for example `Bardic Inspiration: Armor Class +1`. Previously they took the source item's name alone, which collided with the Effect Names rule naming dnd5e's own effects the same way: holding a Bardic Inspiration die and having spent one on AC both read simply "Bardic Inspiration" and were indistinguishable on the token.

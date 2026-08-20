@@ -76,30 +76,58 @@ function onPreCreateActiveEffect(effect, data) {
  * @returns {string|null}
  */
 function sourceNameFor(effect, origin) {
-  // Only effects landing on an actor. Effects living on items, and enchantments that modify an item,
-  // are a different thing entirely and their names are not "where did this bonus come from".
-  if (effect.parent?.documentName !== "Actor") return null;
+  // Enchantments modify an item rather than mark an actor, so their names are a different thing.
   if (effect.type === "enchantment") return null;
 
   // Conditions and concentration carry status ids. Renaming "Prone" to the item that inflicted it,
   // or the concentration marker to the spell, would lose information rather than add it.
   if (effect.statuses?.size) return null;
 
+  const parentKind = effect.parent?.documentName;
+
+  // An effect living on an item that transfers to its owner, such as a class feature's passive
+  // effect. dnd5e shows these in the actor's effects list, so the paladin's Aura of Protection reads
+  // "Protected" there. The item itself is the source, no origin lookup needed.
+  //
+  // Restricted to items owned by an actor. Owned items are copies, so this rewrites the character's
+  // own feature and never reaches world or compendium content.
+  if (parentKind === "Item") {
+    const item = effect.parent;
+    if (item.parent?.documentName !== "Actor") return null;
+    return nameFromItem(effect, item);
+  }
+
+  if (parentKind !== "Actor") return null;
   if (!origin) return null;
 
-  const item = resolveSourceItem(origin);
+  return nameFromItem(effect, resolveSourceItem(origin));
+}
+
+/**
+ * The name an effect should take from its source item, or null to leave it alone.
+ * @param {object} effect
+ * @param {object} item
+ * @returns {string|null}
+ */
+function nameFromItem(effect, item) {
   if (!item?.name) return null;
-  if (effect.name === item.name) return null;
+
+  // Strip any leading copies of the item name before deciding anything.
+  //
+  // Content often already names its effects "Draconic Resilience: Armor", and prefixing that again
+  // produced "Draconic Resilience: Draconic Resilience: Armor". Reducing to the bare part first
+  // makes this idempotent: a correct name is recomputed to itself and left alone, and a name
+  // doubled by an earlier pass is repaired rather than extended again.
+  const prefix = `${item.name}: `;
+  let base = effect.name ?? "";
+  while (base.startsWith(prefix)) base = base.slice(prefix.length);
 
   // A source with several effects would collapse into several identically named entries, so those
   // keep their own name alongside the source rather than becoming indistinguishable.
-  const siblings = item.effects?.filter?.(e => e.type !== "enchantment" && !e.transfer)?.length ?? 0;
-  if (siblings > 1) {
-    const combined = `${item.name}: ${effect.name}`;
-    return (effect.name === combined) ? null : combined;
-  }
+  const siblings = item.effects?.filter?.(e => e.type !== "enchantment")?.length ?? 0;
+  const proposed = (siblings > 1) ? `${item.name}: ${base}` : item.name;
 
-  return item.name;
+  return (proposed === effect.name) ? null : proposed;
 }
 
 /**
@@ -203,6 +231,21 @@ export async function renameExistingEffects() {
       if (updates.length) {
         await actor.updateEmbeddedDocuments("ActiveEffect", updates);
         renamed += updates.length;
+      }
+
+      // Effects living on the actor's own items transfer onto the actor and show in its effects
+      // list, so they need converting too. They are never created through preCreateActiveEffect,
+      // because they arrive as part of the item, which makes this sweep their only route.
+      for (const item of actor.items) {
+        const itemUpdates = [];
+        for (const effect of item.effects) {
+          const name = sourceNameFor(effect, effect.origin);
+          if (name) itemUpdates.push({ _id: effect.id, name });
+        }
+        if (itemUpdates.length) {
+          await item.updateEmbeddedDocuments("ActiveEffect", itemUpdates);
+          renamed += itemUpdates.length;
+        }
       }
     } catch (err) {
       console.error(`${MODULE_ID} | Failed to rename effects on "${actor.name}".`, err);

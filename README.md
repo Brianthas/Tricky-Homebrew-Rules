@@ -9,6 +9,7 @@ A collection of house rules for the Foundry VTT **dnd5e** system. Each rule is i
 | [Roll to Bonus](#roll-to-bonus) | Turns any rolled number into a temporary bonus to AC, saves, attacks and more. |
 | [Effect Names](#effect-names) | Names applied effects after the item that produced them. |
 | [Expire Effects](#expire-effects) | Removes effects once their duration runs out, including concentration spells. |
+| [Auras](#auras) | An effect radiates to tokens within a radius and keeps up as they move. |
 
 ---
 
@@ -198,6 +199,14 @@ It works in both directions:
 - **New effects** are renamed as they are applied.
 - **Existing effects** can be converted with the *Rename Existing Effects* button in the module settings, so a world does not end up half converted. It covers world actors and unlinked tokens on every scene, asks for confirmation first, and reports how many it changed.
 
+### Passive effects on items
+
+A class feature's passive effect lives on the item, not the actor, and transfers onto its owner. dnd5e still shows it in the actor's effects list, which is why a paladin's Aura of Protection reads "Protected" there.
+
+Those are renamed too, but only on items owned by an actor. Owned items are copies, so this rewrites the character's own feature and never touches world or compendium content.
+
+They never pass through effect creation, since they arrive as part of the item, so the **Rename Existing Effects** sweep is the only thing that converts them.
+
 ### What it leaves alone
 
 - **Conditions** such as Prone or Poisoned. They carry status ids, and renaming them to whatever inflicted them would lose information rather than add it.
@@ -246,6 +255,68 @@ Only the active GM performs the removals, so several clients seeing the same tur
 
 ---
 
+## Auras
+
+Turns any effect into an aura: it applies itself to other tokens within a radius, and keeps up as everyone moves.
+
+Set one up with the **Aura** button on any effect's configuration sheet. Radius, who it reaches, whether walls block it, and whether it affects its own token.
+
+### Only the strongest applies
+
+Two paladins radiating Aura of Protection grant one bonus, not two, matching 5e. The stronger wins, and walking out of the stronger one's range downgrades you to the weaker rather than dropping you to nothing.
+
+Strength is worked out from the aura's own change values against the source actor's roll data, so `+@abilities.cha.mod` compares correctly between two paladins with no configuration. There's an optional override, and a per-aura switch for homebrew that is meant to stack.
+
+### Numbers come from the source, not the recipient
+
+A paladin's Aura of Protection is written as `@abilities.cha.mod`. Copying that formula to an ally would make the ally resolve it against their *own* Charisma, so everyone would quietly receive their own modifier rather than the paladin's.
+
+References are resolved against the actor radiating the aura at the moment it is applied. Dice are left as dice, so an aura granting `1d4` is still rolled by whoever receives it.
+
+### Seeing the range
+
+An aura draws its reach on the token, measured from the token's **edge** rather than its centre, matching how "within 10 feet" is counted at the table. Gold for auras that reach allies, red for those that reach enemies, drawn behind the token art.
+
+The ring has its own token HUD control, separate from the switch that turns the aura on and off. A permanent aura like Aura of Protection usually wants to keep running with its ring out of the way, so hiding the ring and disabling the aura are deliberately different buttons.
+
+### One click on the token HUD
+
+Selecting a token with auras adds a button to its HUD that turns all of them on or off at once. For an aura that is only sometimes running, like a spell you have just cast, that beats opening the sheet and hunting for the effect.
+
+### How it works
+
+The rule **reconciles** rather than tracking events. Any relevant change (movement, an effect appearing, a wall opening, combat starting) triggers one pass that recomputes which tokens should be inside which auras and creates or deletes the difference.
+
+That is idempotent, which matters: a missed trigger corrects itself on the next one, instead of leaving a buff on someone who has walked away. It is also what makes "the strongest applies" free, since every pass recomputes the whole picture.
+
+An aura effect never applies to the actor carrying it. Its changes are parked during data preparation and copied onto tokens in range as separate child effects, so the aura itself is a template. "Also affects its own token" then makes its owner an ordinary recipient like anyone else.
+
+Distance uses Foundry's own grid measurement and the wall check uses its movement-collision test, so both respect whatever your scene is configured to do.
+
+### Setting up official auras in one pass
+
+The module settings have a **Set Up Known Auras** button. It finds auras that official content provides and configures them together, so you are not visiting each feature by hand.
+
+Radius and reach come from a built-in table rather than from the item, because the item does not record them. Scanning a real world for items shaped like "self, 30 foot radius" turns up three detection spells for every genuine aura, and Aura of Protection has no range, target or activity at all: its ten feet exists only in the description text. Inference would configure the wrong things and miss the obvious ones.
+
+Nothing is written until you approve the review screen, and radii can be corrected there. Paladin auras widen to 30 feet at 18th level, which the table does not track, so raise those before applying.
+
+Homebrew auras are still set up individually from the Aura button on their effect.
+
+### Known limitation
+
+Only the **active scene** reconciles, because the wall check needs the canvas. Auras on a scene nobody is looking at do not update until it is loaded. In practice the GM is viewing the scene the combat is on.
+
+### Settings
+
+| Setting | Default | What it does |
+| --- | --- | --- |
+| **Auras: Apply Effects To Tokens In Range** | On | Turns this rule on or off. |
+
+Per aura, on the effect itself: radius, reaches (anyone, allies, enemies), affects its own token, blocked by walls, only during combat, stacks, and an optional strength override.
+
+---
+
 ## Requirements
 
 - Foundry VTT v13 or v14
@@ -268,6 +339,7 @@ scripts/
     roll-to-bonus.mjs   the Roll to Bonus rule
     source-named-effects.mjs  the Effect Names rule
     expire-effects.mjs        the Expire Effects rule
+    auras.mjs                 the Auras rule
 ```
 
 Each rule is one file exporting `{ id, registerSettings?, registerPatches?, onReady? }`, listed in `main.mjs`'s `RULES` array. Nothing else in the module needs to know a rule exists. Rules are run through a wrapper that isolates failures, so one rule broken by a dnd5e update can't stop the others from registering.
@@ -299,6 +371,12 @@ Three small libWrapper patches:
 1. `_prepareButtonsContext` on the damage roll dialog appends the Maximize button when every roll is healing.
 2. `_finalizeRolls` tags the rolls when Maximize was the button clicked. dnd5e hands the clicked button's `data-action` straight through with no validation against a known list, so a new button needs nothing else registered.
 3. `DamageRoll#evaluate` sees the tag and passes `maximize: true` down.
+
+## Credits
+
+The Auras rule was written after reading [Aura Effects](https://git.gay/roth-michael/Aura-Effects) by Michael Roth, MIT licensed, which solves the same problem. Two ideas are taken from its design: an aura effect parking its own changes so it acts as a template, and comparing the product of two tokens' dispositions to express "allies" and "enemies" in one test. The implementation here is independent and takes a different approach, reconciling state rather than reacting to region enter and exit events.
+
+If you want a maintained, general purpose aura module, use theirs.
 
 ## License
 
