@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.13.1
+
+- Copies applied by an aura are now named after the token radiating them, so a paladin's sheet reads **Aura of Protection** for the aura and **Aura of Protection (from Paladin 2)** for the copy that actually grants the bonus. Two identically named passive effects gave no way to tell which was which, and editing the wrong one is what ended a concentration spell earlier.
+- The Effect Names rule leaves those copies alone. It would otherwise rename them back after their source item on every pass, and the two rules would take turns undoing each other.
+
 ## 0.13.0
 
 - Aura rings can now use **Foundry's own light effects**: emanation, dome, pulse, energy, vortex and the rest, with its coloration techniques. These are the shaders behind the prototype token light settings and look far better than a drawn circle.

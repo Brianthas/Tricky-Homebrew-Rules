@@ -398,6 +398,8 @@ The rule **reconciles** rather than tracking events. Any relevant change (moveme
 
 That is idempotent, which matters: a missed trigger corrects itself on the next one, instead of leaving a buff on someone who has walked away. It is also what makes "the strongest applies" free, since every pass recomputes the whole picture.
 
+Copies are named after the token radiating them, so a paladin's sheet shows the aura itself as **Aura of Protection** and the copy granting the bonus as **Aura of Protection (from Paladin 2)**. Under one name they were indistinguishable, and configuring the inert one instead of the real aura is a mistake with real consequences.
+
 An aura effect never applies to the actor carrying it. Its changes are parked during data preparation and copied onto tokens in range as separate child effects, so the aura itself is a template. "Also affects its own token" then makes its owner an ordinary recipient like anyone else.
 
 Distance uses Foundry's own grid measurement and the wall check uses its movement-collision test, so both respect whatever your scene is configured to do.

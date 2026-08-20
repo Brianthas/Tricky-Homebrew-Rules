@@ -605,7 +605,7 @@ function childData(sourceUuid) {
   if (!effect) return null;
 
   return {
-    name: effect.name,
+    name: childName(effect),
     img: effect.img,
     origin: sourceUuid,
     disabled: false,
@@ -618,6 +618,22 @@ function childData(sourceUuid) {
     changes: resolvedChanges(effect),
     flags: { [MODULE_ID]: { [FROM_AURA]: sourceUuid } }
   };
+}
+
+/**
+ * What to call the copy an aura applies.
+ *
+ * An aura that affects its own token leaves its owner holding two effects: the aura itself, sitting
+ * inert on the item, and this copy, which is the one actually granting the bonus. Under the same
+ * name they are indistinguishable on the character sheet, and configuring the wrong one is a real
+ * mistake with real consequences, so the copy says where it came from.
+ *
+ * @param {object} effect  The source aura.
+ * @returns {string}
+ */
+function childName(effect) {
+  const actor = actorOf(effect);
+  return actor?.name ? `${effect.name} (from ${actor.name})` : effect.name;
 }
 
 /**

@@ -79,6 +79,11 @@ function sourceNameFor(effect, origin) {
   // Enchantments modify an item rather than mark an actor, so their names are a different thing.
   if (effect.type === "enchantment") return null;
 
+  // A copy applied by the Auras rule is named by that rule, which says which token it radiates
+  // from. Renaming it after its source item would strip that back off on every reconcile, and the
+  // two rules would take turns undoing each other.
+  if (effect.getFlag?.(MODULE_ID, "fromAura")) return null;
+
   // Conditions and concentration carry status ids. Renaming "Prone" to the item that inflicted it,
   // or the concentration marker to the spell, would lose information rather than add it.
   if (effect.statuses?.size) return null;
