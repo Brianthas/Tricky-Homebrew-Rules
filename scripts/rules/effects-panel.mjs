@@ -8,8 +8,8 @@ const FROM_AURA = "fromAura";
 
 /** Which effects the panel lists. */
 const SHOW = {
-  ALL: "all",
-  TEMPORARY: "temporary"
+  TEMPORARY: "temporary",
+  ALL: "all"
 };
 
 /* -------------------------------------------- */
@@ -17,11 +17,11 @@ const SHOW = {
 /* -------------------------------------------- */
 
 /**
- * Lists the selected token's effects beside the sidebar, and lets them be removed from there.
+ * Lists what is currently running on the selected token, beside the sidebar.
  *
  * dnd5e keeps effects on the character sheet, two clicks and a tab away from the table. Systems like
- * pf2e put them on screen next to the sidebar where everyone can see what is running, which is what
- * this copies.
+ * pf2e put them on screen next to the sidebar where everyone can see them, which is what this
+ * copies: a row of icons, with the detail on hover and a cross to be rid of one.
  *
  * The panel lives inside `#ui-right-column-1`, the flex column that already holds chat
  * notifications, so it sits left of the sidebar and follows the sidebar being collapsed without this
@@ -49,10 +49,10 @@ export const effectsPanel = {
       scope: "client",
       config: true,
       type: String,
-      default: SHOW.ALL,
+      default: SHOW.TEMPORARY,
       choices: {
-        [SHOW.ALL]: "THR.Rules.EffectsPanel.Settings.Show.All",
-        [SHOW.TEMPORARY]: "THR.Rules.EffectsPanel.Settings.Show.Temporary"
+        [SHOW.TEMPORARY]: "THR.Rules.EffectsPanel.Settings.Show.Temporary",
+        [SHOW.ALL]: "THR.Rules.EffectsPanel.Settings.Show.All"
       },
       onChange: () => render()
     });
@@ -111,7 +111,7 @@ function concernsSelection(effect) {
 /**
  * Rebuild the panel from scratch.
  *
- * Redrawn wholesale rather than patched row by row: the list is a handful of entries and only
+ * Redrawn wholesale rather than patched icon by icon: the list is a handful of entries and only
  * changes when something happens, so diffing would be more code and more ways to leave a stale
  * duration on screen.
  */
@@ -131,9 +131,8 @@ function render() {
 
     const panel = document.createElement("div");
     panel.id = PANEL_ID;
-    panel.classList.add("faded-ui", "flexcol");
 
-    for (const effect of effects) panel.append(row(effect));
+    for (const effect of effects) panel.append(iconFor(effect));
 
     column.prepend(panel);
   } catch (err) {
@@ -148,13 +147,31 @@ function render() {
  */
 function listed(actor) {
   const all = actor.allApplicableEffects ? [...actor.allApplicableEffects()] : [...actor.effects];
-  const temporaryOnly = game.settings.get(MODULE_ID, SHOW_KEY) === SHOW.TEMPORARY;
+  const temporaryOnly = game.settings.get(MODULE_ID, SHOW_KEY) !== SHOW.ALL;
 
   return all
     .filter(effect => !effect.disabled && !effect.isSuppressed)
-    .filter(effect => !temporaryOnly || effect.isTemporary)
+    .filter(effect => !temporaryOnly || isRunning(effect))
     .filter(effect => !isOwnAuraCopy(effect, actor))
     .sort((a, b) => a.name.localeCompare(b.name));
+}
+
+/**
+ * Is this something currently happening to the creature, rather than part of what it permanently is?
+ *
+ * Foundry's `isTemporary` answers most of it: true for Shield, for a Concentrating marker and for a
+ * spell effect with a countdown, false for Jack of All Trades, Improved Critical, a fighting style
+ * and the rest of a character's permanent kit.
+ *
+ * Aura copies are the exception it gets wrong for this purpose. They carry no duration, so they are
+ * not temporary by that test, but they appear and disappear as people walk around and are exactly
+ * the sort of thing you want to see. A paladin's aura landing on you belongs on this list.
+ *
+ * @param {object} effect
+ * @returns {boolean}
+ */
+function isRunning(effect) {
+  return effect.isTemporary || !!effect.getFlag(MODULE_ID, FROM_AURA);
 }
 
 /**
@@ -162,7 +179,7 @@ function listed(actor) {
  *
  * An aura that affects its own token leaves its owner holding two effects of the same name and
  * icon: the aura, and a copy of it. Listing both says nothing extra and invites exactly the mistake
- * of reaching for the wrong one. A copy radiating from somebody else still earns its row, because
+ * of reaching for the wrong one. A copy radiating from somebody else still earns its place, because
  * "you have this because of that paladin" is worth knowing.
  *
  * @param {object} effect
@@ -179,77 +196,84 @@ function isOwnAuraCopy(effect, actor) {
   return owner?.id === actor.id;
 }
 
+/* -------------------------------------------- */
+/*  Entries                                     */
+/* -------------------------------------------- */
+
 /**
- * One entry: the icon, what it is, how long it has left, and a way to be rid of it.
+ * One effect, as its icon alone. Everything else is on the tooltip.
  * @param {object} effect
  * @returns {HTMLElement}
  */
-function row(effect) {
+function iconFor(effect) {
   const entry = document.createElement("div");
-  entry.classList.add("tricky-effect-row");
+  entry.classList.add("tricky-effect-icon");
+  entry.dataset.tooltip = tooltip(effect);
+  entry.dataset.tooltipDirection = "LEFT";
 
   const img = document.createElement("img");
   img.src = effect.img;
   img.alt = effect.name;
   entry.append(img);
 
-  const text = document.createElement("div");
-  text.classList.add("tricky-effect-text");
-
-  const name = document.createElement("span");
-  name.classList.add("tricky-effect-name");
-  name.textContent = effect.name;
-  text.append(name);
-
-  const remaining = durationLabel(effect);
-  if (remaining) {
-    const time = document.createElement("span");
-    time.classList.add("tricky-effect-duration");
-    time.textContent = remaining;
-    text.append(time);
-  }
-  entry.append(text);
-
-  // Opening the effect is the safe default for a click, so removing one is always deliberate.
+  // Opening the effect is the safe default for a click, so removing one stays deliberate.
   img.addEventListener("click", () => effect.sheet?.render(true));
-  name.addEventListener("click", () => effect.sheet?.render(true));
 
-  entry.append(removeButton(effect));
+  const remove = removeBadge(effect);
+  if (remove) entry.append(remove);
+
   return entry;
 }
 
 /**
- * The remove control, or an explanation of why there is not one.
- *
- * A copy applied by the Auras rule is owned by that rule and would be recreated on the next pass, so
- * a remove button on one would visibly do nothing. It names the token it radiates from instead,
- * which is what you need to know before going to look for the off switch.
- *
+ * What the hover says: what it is, how long it has left, and how to be rid of it.
  * @param {object} effect
- * @returns {HTMLElement}
+ * @returns {string}
  */
-function removeButton(effect) {
-  const button = document.createElement("button");
-  button.type = "button";
-  button.classList.add("tricky-effect-remove");
+function tooltip(effect) {
+  const lines = [`<strong>${foundry.utils.escapeHTML(effect.name)}</strong>`];
+
+  const remaining = durationLabel(effect);
+  if (remaining) lines.push(remaining);
 
   const fromAura = effect.getFlag(MODULE_ID, FROM_AURA);
   if (fromAura) {
     const source = fromUuidSync(fromAura, { strict: false });
     const parent = source?.parent;
     const owner = parent?.documentName === "Item" ? parent.parent : parent;
-    button.classList.add("tricky-effect-locked");
-    button.disabled = true;
-    button.innerHTML = '<i class="fa-solid fa-circle-nodes"></i>';
-    button.dataset.tooltip = game.i18n.format("THR.Rules.EffectsPanel.FromAura", {
+    lines.push(game.i18n.format("THR.Rules.EffectsPanel.FromAura", {
       name: owner?.name ?? game.i18n.localize("THR.Rules.EffectsPanel.AnotherToken")
-    });
-    return button;
+    }));
+  } else {
+    lines.push(game.i18n.localize(effect.parent?.documentName === "Item"
+      ? "THR.Rules.EffectsPanel.HintDisable"
+      : "THR.Rules.EffectsPanel.HintRemove"));
   }
 
+  return lines.join("<br>");
+}
+
+/**
+ * The cross that appears on hover, or nothing for an effect this panel will not remove.
+ *
+ * A copy applied by the Auras rule is owned by that rule and would be recreated on the next pass, so
+ * a cross on one would visibly do nothing. Its tooltip names the token it radiates from instead,
+ * which is what you need in order to go and turn the aura off.
+ *
+ * @param {object} effect
+ * @returns {HTMLElement|null}
+ */
+function removeBadge(effect) {
+  if (effect.getFlag(MODULE_ID, FROM_AURA)) return null;
+
+  const button = document.createElement("button");
+  button.type = "button";
+  button.classList.add("tricky-effect-remove");
   button.innerHTML = '<i class="fa-solid fa-xmark"></i>';
-  button.dataset.tooltip = game.i18n.localize("THR.Rules.EffectsPanel.Remove");
-  button.addEventListener("click", async () => {
+
+  button.addEventListener("click", async event => {
+    event.preventDefault();
+    event.stopPropagation();
     try {
       // An effect sitting on an item is granted by that item, so deleting it would edit the
       // character rather than clear something that is running. Switching it off is the reversible

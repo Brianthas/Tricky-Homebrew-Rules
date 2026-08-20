@@ -4,8 +4,10 @@
 
 ### Effects Panel, a new rule
 
-- Selecting a token now lists its active effects at the top right beside the sidebar, each with a button to remove it, in the style of the panel pf2e ships. dnd5e keeps effects on the character sheet, two clicks and a tab away from the table.
-- Clicking an icon or name opens the effect, so removal is always deliberate. An effect granted by an item is switched off rather than deleted, since deleting it would edit the character.
+- Selecting a token now shows what is running on it as a row of icons at the top right beside the sidebar, in the style of the panel pf2e ships. dnd5e keeps effects on the character sheet, two clicks and a tab away from the table.
+- Icons only, with the name, remaining time and what the cross will do on hover. Clicking the icon opens the effect, so removal is always deliberate. An effect granted by an item is switched off rather than deleted, since deleting it would edit the character.
+- Lists only what is happening **to** the creature: spell effects, conditions, concentration and auras reaching it. Permanent kit like Jack of All Trades, Improved Critical or a fighting style is left off, with a setting to include it. Aura copies are counted as running despite carrying no duration, because they come and go as people move.
+- Opaque rather than faded, since a status readout that blends into the map is one you stop trusting.
 - A copy applied by an aura cannot be removed here, because the Auras rule would put it straight back. It names the token it radiates from instead. Where an aura affects its own token, only the aura is listed rather than the aura and its copy under the same name.
 - Both settings are per person rather than per world.
 

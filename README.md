@@ -11,7 +11,7 @@ A collection of house rules for the Foundry VTT **dnd5e** system. Each rule is i
 | [Expire Effects](#expire-effects) | Removes effects once their duration runs out, including concentration spells. |
 | [Auras](#auras) | An effect radiates to tokens within a radius and keeps up as they move. |
 | [Self Effects](#self-effects) | A spell that can only target its caster applies itself, with no button to press. |
-| [Effects Panel](#effects-panel) | The selected token's effects, listed beside the sidebar, removable in one click. |
+| [Effects Panel](#effects-panel) | What is running on the selected token, as icons beside the sidebar. |
 
 ---
 
@@ -259,25 +259,41 @@ Only the active GM performs the removals, so several clients seeing the same tur
 
 ## Effects Panel
 
-Select a token and its active effects are listed at the top right, beside the sidebar, each with a button to remove it. The same idea as the panel pf2e ships, which dnd5e has no equivalent of: effects otherwise live on the character sheet, two clicks and a tab away from the table.
+Select a token and what is running on it appears as a row of icons at the top right, beside the sidebar. The same idea as the panel pf2e ships, which dnd5e has no equivalent of: effects otherwise live on the character sheet, two clicks and a tab away from the table.
 
-Click an effect's icon or name to open it. The cross removes it, so removal is always the deliberate action rather than the accidental one.
+Just the icons. Hover one for its name, how long it has left, and what the cross will do. Click the icon to open the effect, or the cross in its corner to remove it, so removal is always the deliberate action rather than the accidental one.
+
+The panel is deliberately opaque. A status readout that fades into the map behind it is one you stop trusting.
+
+### What counts as running
+
+Only things happening **to** the creature, not the permanent kit that makes it what it is. Foundry's own `isTemporary` draws most of that line:
+
+| Shown | Not shown |
+| --- | --- |
+| Shield, Bless, spell effects with a countdown | Jack of All Trades, Improved Critical, Remarkable Athlete |
+| Concentration markers | Fighting styles, Draconic Resilience |
+| Auras reaching the token from elsewhere | A paladin's own Aura of Protection, which is a class feature |
+
+Aura copies are the one case `isTemporary` gets wrong for this purpose. They carry no duration, so Foundry does not call them temporary, but they appear and vanish as people walk around and a paladin's aura landing on you is exactly what this panel is for. They are counted as running.
+
+A setting switches the panel back to listing everything active, permanent features included.
 
 ### Where it sits
 
 Inside `#ui-right-column-1`, the flex column that already holds chat notifications. That means it sits left of the sidebar and follows the sidebar being collapsed on its own, rather than this rule having to know the sidebar's width or watch for it changing.
 
-### What it will not remove for you
+### What the cross will not do for you
 
-| Kind of effect | The button does |
+| Kind of effect | The cross does |
 | --- | --- |
 | An ordinary effect on the actor | deletes it |
-| An effect granted by an item, like a fighting style | switches it off, since deleting it would edit the character |
-| A copy applied by an aura | nothing, and says which token it radiates from |
+| An effect granted by an item | switches it off, since deleting it would edit the character |
+| A copy applied by an aura | there is no cross, and the hover says which token it radiates from |
 
-An aura copy is owned by the Auras rule and would be recreated on the next pass, so a remove button on one would visibly do nothing. It names the source instead, which is what you need in order to go and turn the aura off.
+An aura copy is owned by the Auras rule and would be recreated on the next pass, so a cross on one would visibly do nothing. It names the source instead, which is what you need in order to go and turn the aura off.
 
-An aura that affects its own token leaves its owner holding the aura and a copy of it, under the same name and icon. The panel lists only the aura in that case. A copy radiating from somebody else still gets its row, because "you have this because of that paladin" is worth knowing.
+An aura that affects its own token leaves its owner holding the aura and a copy of it, under the same name and icon. The panel shows only one in that case. A copy radiating from somebody else still gets its icon, because "you have this because of that paladin" is worth knowing.
 
 ### Settings
 
@@ -286,7 +302,7 @@ Both are per person rather than per world, since this is about one player's scre
 | Setting | Default | What it does |
 | --- | --- | --- |
 | **Effects Panel: Show Effects Beside The Sidebar** | On | Turns the panel on or off. |
-| **Effects Panel: Which Effects** | Everything active | Everything running, or only effects that run out on their own. |
+| **Effects Panel: Which Effects** | Only what is happening to it | Whether permanent features are listed alongside what is currently running. |
 
 ---
 
