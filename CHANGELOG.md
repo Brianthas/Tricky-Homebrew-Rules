@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- **Your own auras can be added to the known table.** The Aura dialog has a **Remember this aura** switch: tick it and Set Up Known Auras will offer the same settings on any other character with that feature. The built-in table only covers official content, so homebrew previously meant configuring it by hand on every character that had it.
+
 - Added a **test suite** covering the parts of the module that are ordinary logic: ring colours, effect naming, expiry, bonus formatting, aura liveness and light comparison. 39 tests, no Foundry required, run by CI on every push. Several of tonight's bugs came from two places deciding the same thing separately, which is exactly what a test pins down.
 - Added a **localisation key check**, also in CI. Reintroducing the raw-key bug that shipped in 0.12.0 now fails the build and names the key and file. Keys assembled by transforming a value fail outright, since that is the shape that broke; keys reached through a prefix helper are reconstructed and checked.
 - Ring style labels are written out rather than built by capitalising the style name, which is what caused that bug.

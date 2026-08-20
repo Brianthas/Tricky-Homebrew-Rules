@@ -69,6 +69,44 @@ const RING_STYLE_LABELS = {
  */
 const LIGHT_PREFIX = "light:";
 
+/** Setting holding auras this world has taught the module about, keyed by item name. */
+const CUSTOM_KEY = "aurasCustom";
+
+/**
+ * What this world knows about an aura by that name, its own answers first.
+ *
+ * The built-in table only covers official content. Homebrew gets configured by hand on every actor
+ * that has it, which is the same work repeated for every new character, so an aura configured once
+ * can be remembered and offered to the next one.
+ *
+ * @param {string} name
+ * @returns {object|null}
+ */
+function knownFor(name) {
+  const key = String(name ?? "").trim().toLowerCase();
+  const custom = game.settings.get(MODULE_ID, CUSTOM_KEY) ?? {};
+  return custom[key] ? { ...custom[key] } : knownAuraFor(name);
+}
+
+/**
+ * Teach this world about an aura, so the bulk setup offers it on other characters.
+ *
+ * @param {string} name
+ * @param {object} config
+ */
+async function rememberAura(name, config) {
+  const key = String(name ?? "").trim().toLowerCase();
+  if (!key) return;
+
+  const custom = { ...(game.settings.get(MODULE_ID, CUSTOM_KEY) ?? {}) };
+  custom[key] = {
+    radius: config.radius,
+    disposition: config.disposition,
+    applyToSelf: config.applyToSelf
+  };
+  await game.settings.set(MODULE_ID, CUSTOM_KEY, custom);
+}
+
 /** Where a token's own light configuration is kept while an aura is borrowing it. */
 const LIGHT_STASH = "lightStash";
 
@@ -139,6 +177,15 @@ export const auras = {
       config: true,
       type: Boolean,
       default: true
+    });
+
+    // Auras this world has been taught, keyed by item name. Not shown in the settings list: it is
+    // written by ticking a box while configuring an aura, not by editing a blob of JSON.
+    game.settings.register(MODULE_ID, CUSTOM_KEY, {
+      scope: "world",
+      config: false,
+      type: Object,
+      default: {}
     });
 
     // Setting auras up one at a time is the slow part. This finds the ones official content
@@ -1349,8 +1396,8 @@ async function promptAuraConfig(effect) {
   const stored = auraConfig(effect);
   const known = stored
     ? null
-    : (knownAuraFor(effect.name)
-      ?? (effect.parent?.documentName === "Item" ? knownAuraFor(effect.parent.name) : null));
+    : (knownFor(effect.name)
+      ?? (effect.parent?.documentName === "Item" ? knownFor(effect.parent.name) : null));
   const current = stored
     ?? { ...DEFAULTS, ...known, radius: knownRadiusFor(known, actorOf(effect)), enabled: true };
   const L = key => game.i18n.localize(`THR.Rules.Auras.Config.${key}`);
@@ -1442,6 +1489,11 @@ async function promptAuraConfig(effect) {
       <p class="hint">${L("StacksHint")}</p>
     </div>
     <div class="form-group">
+      <label>${L("Remember")}</label>
+      <div class="form-fields"><input type="checkbox" name="remember"></div>
+      <p class="hint">${L("RememberHint")}</p>
+    </div>
+    <div class="form-group">
       <label>${L("Strength")}</label>
       <div class="form-fields"><input type="text" name="strength" value="${current.strength ?? ""}"></div>
       <p class="hint">${L("StrengthHint")}</p>
@@ -1479,6 +1531,19 @@ async function promptAuraConfig(effect) {
       coloration: Number(result.coloration) || 1,
       strength: String(result.strength ?? "").trim()
     });
+    // Remembered against the item that grants it, since that is the name the bulk setup matches on
+    // when it goes looking on somebody else's sheet.
+    if (result.remember) {
+      const item = effect.parent?.documentName === "Item" ? effect.parent : null;
+      await rememberAura(item?.name ?? effect.name, {
+        radius: String(result.radius ?? "").trim() || "0",
+        disposition: Number(result.disposition) || 0,
+        applyToSelf: !!result.applyToSelf
+      });
+      ui.notifications?.info(game.i18n.format("THR.Rules.Auras.Config.Remembered",
+        { name: item?.name ?? effect.name }));
+    }
+
     scheduleReconcile();
   } catch (err) {
     console.error(`${MODULE_ID} | Failed to save the aura configuration.`, err);
@@ -1504,7 +1569,7 @@ function findKnownAuras() {
 
   for (const actor of allActors()) {
     for (const item of actor.items) {
-      const known = knownAuraFor(item.name);
+      const known = knownFor(item.name);
       if (!known) continue;
 
       for (const effect of item.effects) {
