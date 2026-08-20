@@ -4,6 +4,7 @@
 
 - An aura's range ring colour is now set per aura, in its Aura dialog. Left on **Automatic** it keeps the old behaviour, gold for auras reaching allies and red for those reaching enemies. Every aura configured before this update stays on Automatic, so nothing changes appearance until you pick a colour.
 - Useful when auras overlap: two paladins both radiating to allies drew two identical gold rings, with no way to tell which was whose.
+- The **Aura** dialog now pre-fills from the built-in table of known auras when the effect is not an aura yet. Configuring Aura of Life by hand offered a generic 10 feet, even though the table knew it was 30, because only the bulk setup consulted it. It fills in reach and "affects its own token" too, so Spirit Guardians arrives set to enemies rather than allies, and says when the values came from the table so they get checked rather than trusted.
 
 ## 0.11.0
 

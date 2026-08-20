@@ -115,6 +115,7 @@
   "THR.Rules.Auras.HUD.ShowRing": "Show aura range",
   "THR.Rules.Auras.HUD.HideRing": "Hide aura range",
   "THR.Rules.Auras.Config.ShowRadius": "Draw its range on the token",
+  "THR.Rules.Auras.Config.Seeded": "Filled in from the module's table of known auras. Check the radius before saving, since some auras widen at higher levels.",
   "THR.Rules.Auras.Config.Colour": "Ring colour",
   "THR.Rules.Auras.Config.AutoColour": "Automatic",
   "THR.Rules.Auras.Config.ColourHint": "The colour of the range ring drawn on the token. Automatic uses yellow for auras that reach allies and red for ones that reach enemies. Pick a colour to tell overlapping auras apart."

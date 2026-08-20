@@ -261,6 +261,8 @@ Turns any effect into an aura: it applies itself to other tokens within a radius
 
 Set one up with the **Aura** button on any effect's configuration sheet. Radius, who it reaches, whether walls block it, and whether it affects its own token.
 
+If the effect is one the module recognises, the dialog pre-fills from the same table [Set Up Known Auras](#setting-up-official-auras-in-one-pass) uses, matching on the effect's name and then on the item it came from. It tells you when it has done so, because the table cannot know about level scaling: a paladin's aura widens to 30 feet at 18th level.
+
 ### Only the strongest applies
 
 Two paladins radiating Aura of Protection grant one bonus, not two, matching 5e. The stronger wins, and walking out of the stronger one's range downgrades you to the weaker rather than dropping you to nothing.

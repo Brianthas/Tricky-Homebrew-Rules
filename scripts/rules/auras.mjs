@@ -877,15 +877,27 @@ function onRenderEffectConfig(app, html) {
  * @param {object} effect
  */
 async function promptAuraConfig(effect) {
-  // Opening this dialog on an effect that is not yet an aura means the intent is to make it one, so
-  // the switch starts on. Starting it off meant configuring everything correctly, saving, and having
-  // nothing happen.
-  const current = auraConfig(effect) ?? { ...DEFAULTS, enabled: true };
+  // An effect with no config yet is being turned into an aura for the first time, so two things are
+  // assumed about the intent. The switch starts on, because starting it off meant configuring
+  // everything correctly, saving, and having nothing happen. And the known table is consulted for a
+  // radius and reach, because it had the right answer for Aura of Life all along while only the bulk
+  // setup asked it, so configuring one by hand pre-filled ten feet for a thirty foot aura. Matched
+  // on the effect's own name first, then on the item it came from.
+  const stored = auraConfig(effect);
+  const known = stored
+    ? null
+    : (knownAuraFor(effect.name)
+      ?? (effect.parent?.documentName === "Item" ? knownAuraFor(effect.parent.name) : null));
+  const current = stored ?? { ...DEFAULTS, ...known, enabled: true };
   const L = key => game.i18n.localize(`THR.Rules.Auras.Config.${key}`);
   const checked = value => (value ? " checked" : "");
   const selected = (a, b) => (a === b ? " selected" : "");
 
-  const content = `
+  const notice = known
+    ? `<p class="notification info">${game.i18n.localize("THR.Rules.Auras.Config.Seeded")}</p>`
+    : "";
+
+  const content = `${notice}
     <div class="form-group">
       <label>${L("Enabled")}</label>
       <div class="form-fields"><input type="checkbox" name="enabled"${checked(current.enabled)}></div>
