@@ -147,3 +147,25 @@
   color: #ffe9a3;
   border-color: #b8860b;
 }
+
+/* Aura ring colour row: a compact swatch beside its "automatic" switch, rather than a colour
+   input stretched across the whole dialog. */
+.tricky-aura-colour .form-fields {
+  align-items: center;
+  gap: 0.5em;
+}
+
+.tricky-aura-colour input[type="color"] {
+  flex: 0 0 3em;
+  height: 1.8em;
+  padding: 0;
+  cursor: pointer;
+}
+
+.tricky-aura-colour label.checkbox {
+  display: flex;
+  flex: 0 0 auto;
+  align-items: center;
+  gap: 0.3em;
+  white-space: nowrap;
+}

@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.12.0
+
+- An aura's range ring colour is now set per aura, in its Aura dialog. Left on **Automatic** it keeps the old behaviour, gold for auras reaching allies and red for those reaching enemies. Every aura configured before this update stays on Automatic, so nothing changes appearance until you pick a colour.
+- Useful when auras overlap: two paladins both radiating to allies drew two identical gold rings, with no way to tell which was whose.
+
 ## 0.11.0
 
 - Auras now draw their range on the token, measured from the token's edge rather than its centre, which is what "within 10 feet" means at the table. Rings are gold for auras reaching allies and red for those reaching enemies, and sit behind the token art so they never obscure the creature.

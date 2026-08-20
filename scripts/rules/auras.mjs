@@ -42,8 +42,15 @@ const DEFAULTS = {
   respectWalls: true,
   stacks: false,
   strength: "",
-  showRadius: true
+  showRadius: true,
+
+  // Empty means "pick from disposition". Every aura configured before this option existed stores
+  // no colour at all, so empty has to keep meaning the old behaviour rather than black.
+  colour: ""
 };
+
+/** Ring colours used when an aura has no colour of its own. */
+const AUTO_RING_COLOUR = { ENEMIES: 0xE57373, DEFAULT: 0xFFD54F };
 
 /* -------------------------------------------- */
 /*  Rule Definition                             */
@@ -677,6 +684,22 @@ const RING = "trickyAuraRing";
  *
  * @param {object} token
  */
+function ringColour(config) {
+  const chosen = String(config?.colour ?? "").trim();
+  if (/^#[0-9a-f]{6}$/i.test(chosen)) return Number.parseInt(chosen.slice(1), 16);
+  return (config?.disposition === DISPOSITION.ENEMIES) ? AUTO_RING_COLOUR.ENEMIES : AUTO_RING_COLOUR.DEFAULT;
+}
+
+/**
+ * A colour number as the `#rrggbb` string an `<input type="color">` needs.
+ *
+ * @param {number} value
+ * @returns {string}
+ */
+function toHex(value) {
+  return `#${value.toString(16).padStart(6, "0")}`;
+}
+
 function drawAuraRing(token) {
   try {
     if (token?.[RING]) {
@@ -702,7 +725,7 @@ function drawAuraRing(token) {
       const feet = resolveNumber(config.radius, token.actor);
       if (!(feet > 0)) continue;
 
-      const colour = (config.disposition === DISPOSITION.ENEMIES) ? 0xE57373 : 0xFFD54F;
+      const colour = ringColour(config);
       graphics.lineStyle(3, colour, 0.65);
       graphics.beginFill(colour, 0.05);
       graphics.drawCircle(token.w / 2, token.h / 2, (feet * perFoot) + edge);
@@ -898,6 +921,14 @@ async function promptAuraConfig(effect) {
       <label>${L("ShowRadius")}</label>
       <div class="form-fields"><input type="checkbox" name="showRadius"${checked(current.showRadius)}></div>
     </div>
+    <div class="form-group tricky-aura-colour">
+      <label>${L("Colour")}</label>
+      <div class="form-fields">
+        <input type="color" name="colour" value="${toHex(ringColour(current))}">
+        <label class="checkbox">${L("AutoColour")}<input type="checkbox" name="autoColour"${checked(!current.colour)}></label>
+      </div>
+      <p class="hint">${L("ColourHint")}</p>
+    </div>
     <div class="form-group">
       <label>${L("Stacks")}</label>
       <div class="form-fields"><input type="checkbox" name="stacks"${checked(current.stacks)}></div>
@@ -933,6 +964,7 @@ async function promptAuraConfig(effect) {
       combatOnly: !!result.combatOnly,
       stacks: !!result.stacks,
       showRadius: !!result.showRadius,
+      colour: result.autoColour ? "" : String(result.colour ?? "").trim(),
       strength: String(result.strength ?? "").trim()
     });
     scheduleReconcile();

@@ -275,7 +275,9 @@ References are resolved against the actor radiating the aura at the moment it is
 
 ### Seeing the range
 
-An aura draws its reach on the token, measured from the token's **edge** rather than its centre, matching how "within 10 feet" is counted at the table. Gold for auras that reach allies, red for those that reach enemies, drawn behind the token art.
+An aura draws its reach on the token, measured from the token's **edge** rather than its centre, matching how "within 10 feet" is counted at the table. Drawn behind the token art, so a ring never obscures the creature standing in it.
+
+Colour is set per aura in its Aura dialog. Left on **Automatic** it uses gold for auras that reach allies and red for those that reach enemies. Pick a colour instead when several auras overlap and you want to tell at a glance which ring is whose.
 
 The ring has its own token HUD control, separate from the switch that turns the aura on and off. A permanent aura like Aura of Protection usually wants to keep running with its ring out of the way, so hiding the ring and disabling the aura are deliberately different buttons.
 
@@ -313,7 +315,7 @@ Only the **active scene** reconciles, because the wall check needs the canvas. A
 | --- | --- | --- |
 | **Auras: Apply Effects To Tokens In Range** | On | Turns this rule on or off. |
 
-Per aura, on the effect itself: radius, reaches (anyone, allies, enemies), affects its own token, blocked by walls, only during combat, stacks, and an optional strength override.
+Per aura, on the effect itself: radius, reaches (anyone, allies, enemies), affects its own token, blocked by walls, only during combat, whether to draw the range ring and in what colour, stacks, and an optional strength override.
 
 ---
 
