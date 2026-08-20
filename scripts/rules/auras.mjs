@@ -608,7 +608,12 @@ async function applyDifference(tokens, desired) {
 
     try {
       if (stale.length) {
-        await actor.deleteEmbeddedDocuments("ActiveEffect", stale.map(effect => effect.id));
+        // Re-checked at the moment of deletion rather than trusting the list gathered above. dnd5e
+        // removes an effect's dependents when a concentration spell ends, so between building this
+        // list and acting on it a child can already be gone, and asking Foundry to delete a document
+        // that no longer exists throws.
+        const ids = stale.map(effect => effect.id).filter(id => actor.effects.has(id));
+        if (ids.length) await actor.deleteEmbeddedDocuments("ActiveEffect", ids);
       }
       if (refreshed.length) {
         await actor.updateEmbeddedDocuments("ActiveEffect", refreshed);
@@ -1092,6 +1097,39 @@ function drawDashedCircle(g, radius) {
 }
 
 /**
+ * Turn individual auras on a token on or off.
+ *
+ * @param {object[]} sources
+ */
+async function promptAuraToggles(sources) {
+  const rows = sources.map((effect, i) => {
+    const config = auraConfig(effect);
+    const reach = config?.radius ?? "?";
+    return `
+      <div class="form-group">
+        <label>${foundry.utils.escapeHTML(effect.name)}</label>
+        <div class="form-fields"><input type="checkbox" name="on.${i}"${effect.disabled ? "" : " checked"}></div>
+        <p class="hint">${foundry.utils.escapeHTML(String(reach))}</p>
+      </div>`;
+  }).join("");
+
+  const result = await foundry.applications.api.DialogV2.input({
+    window: { title: game.i18n.localize("THR.Rules.Auras.HUD.ChooseTitle") },
+    content: rows,
+    ok: { label: game.i18n.localize("THR.Rules.Auras.Config.Save"), icon: "fa-solid fa-check" }
+  });
+  if (!result) return;
+
+  // Flat keys. `DialogV2.input` hands back FormDataExtended's object without expanding dots, which
+  // is what made the known-aura review screen silently configure nothing for two versions.
+  for (const [i, effect] of sources.entries()) {
+    const wanted = !result[`on.${i}`];
+    if (effect.disabled === wanted) continue;
+    await effect.update({ disabled: wanted });
+  }
+}
+
+/**
  * Flip the ring on or off for every aura on a token.
  * @param {object} actor
  * @param {boolean} visible
@@ -1133,7 +1171,26 @@ function onRenderTokenHUD(hud, html) {
     button.classList.add("control-icon", "tricky-aura-toggle");
     if (anyActive) button.classList.add("active");
     button.dataset.tooltip = game.i18n.localize(anyActive ? "THR.Rules.Auras.HUD.Off" : "THR.Rules.Auras.HUD.On");
+
+    // One button flipping everything is right for a paladin with a single aura, and too blunt for
+    // one also concentrating on a spell. The quick path stays on the click; the choice is a right
+    // click away, and is only worth mentioning when there is actually a choice to make.
+    if (sources.length > 1) {
+      button.dataset.tooltip += ` ${game.i18n.localize("THR.Rules.Auras.HUD.RightClick")}`;
+    }
     button.innerHTML = '<i class="fa-solid fa-circle-nodes"></i>';
+
+    button.addEventListener("contextmenu", async event => {
+      event.preventDefault();
+      event.stopPropagation();
+      try {
+        await promptAuraToggles(sources);
+        scheduleReconcile();
+        hud.render();
+      } catch (err) {
+        console.error(`${MODULE_ID} | Failed to toggle individual auras.`, err);
+      }
+    });
 
     button.addEventListener("click", async event => {
       event.preventDefault();

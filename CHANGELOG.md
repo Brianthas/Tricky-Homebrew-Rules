@@ -2,6 +2,9 @@
 
 ## 0.14.0
 
+- **Individual auras can be switched on and off from the token HUD.** Clicking the aura button still flips everything, which is right for a paladin with one aura and too blunt for one also concentrating on a spell. Right clicking opens a list with a switch per aura, and the tooltip says so only when there is more than one.
+- Deleting an aura's applied copies now re-checks that each still exists at the moment of deletion. dnd5e removes an effect's dependents when a concentration spell ends, so a copy can vanish between being listed and being deleted.
+
 - **Paladin auras now widen at 18th level on their own.** Set Up Known Auras wrote a flat 10 feet, which someone would have had to remember to change mid-campaign. It now writes `10 + 20 * floor(@classes.paladin.levels / 18)`, which is 10 below 18th and 30 from 18th to 20th. The Aura dialog offers the same formula when configuring one by hand.
 
 - **Auras now account for elevation.** They were measured purely on the flat grid, so a dragon hovering sixty feet up sat inside every aura on the ground and a paladin buffed an ally flying overhead. Foundry does the measuring once the waypoints carry a height, using the scene's own diagonal rule, so a token a hundred feet up is a hundred feet away.

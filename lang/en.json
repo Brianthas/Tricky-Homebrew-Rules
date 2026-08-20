@@ -113,6 +113,8 @@
   "THR.Groups.expireEffects": "Expire Effects",
   "THR.Groups.auras": "Auras",
   "THR.Rules.Auras.HUD.ShowRing": "Show aura range",
+  "THR.Rules.Auras.HUD.RightClick": "Right click to choose individual auras.",
+  "THR.Rules.Auras.HUD.ChooseTitle": "Which auras are running?",
   "THR.Rules.Auras.HUD.HideRing": "Hide aura range",
   "THR.Rules.Auras.Config.ShowRadius": "Draw its range on the token",
   "THR.Rules.Auras.Config.Seeded": "Filled in from the module's table of known auras. Check the radius before saving, since some auras widen at higher levels.",

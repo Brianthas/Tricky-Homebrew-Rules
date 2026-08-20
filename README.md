@@ -390,7 +390,7 @@ The ring has its own token HUD control, separate from the switch that turns the 
 
 ### One click on the token HUD
 
-Selecting a token with auras adds a button to its HUD that turns all of them on or off at once. For an aura that is only sometimes running, like a spell you have just cast, that beats opening the sheet and hunting for the effect.
+Selecting a token with auras adds a button to its HUD that turns all of them on or off at once. **Right click it** to choose individual auras instead, which matters once a paladin is carrying a permanent aura and a concentration spell at the same time. For an aura that is only sometimes running, like a spell you have just cast, that beats opening the sheet and hunting for the effect.
 
 ### How it works
 
