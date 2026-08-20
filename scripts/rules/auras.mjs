@@ -188,7 +188,11 @@ function auraChanges(effect) {
  */
 function auraEffectsOf(actor) {
   const all = actor?.allApplicableEffects ? [...actor.allApplicableEffects()] : [...(actor?.effects ?? [])];
-  return all.filter(effect => auraConfig(effect));
+
+  // A copy this rule applied is never a source, whatever flags it ends up carrying. Configuring a
+  // copy by mistake would otherwise make it radiate an aura of its own, and its children would name
+  // a parent that the next reconcile deletes.
+  return all.filter(effect => auraConfig(effect) && !effect.getFlag(MODULE_ID, FROM_AURA));
 }
 
 /* -------------------------------------------- */
@@ -907,6 +911,21 @@ function bindColourControls(dialog) {
  * @param {object} effect
  */
 async function promptAuraConfig(effect) {
+  // An applied copy is not a template. Settings written to one are thrown away by the next
+  // reconcile, and with "affects own token" on, the owner's sheet lists the copy directly beside the
+  // real aura under the same name, so picking the wrong one is the easy mistake rather than the
+  // unusual one. Redirect to the aura it came from instead of quietly configuring a doomed document.
+  const copyOf = effect?.getFlag?.(MODULE_ID, FROM_AURA);
+  if (copyOf) {
+    const source = fromUuidSync(copyOf, { strict: false });
+    if (!source) {
+      ui.notifications?.warn(game.i18n.localize("THR.Rules.Auras.Config.CopyOrphan"));
+      return;
+    }
+    ui.notifications?.info(game.i18n.localize("THR.Rules.Auras.Config.CopyRedirect"));
+    return promptAuraConfig(source);
+  }
+
   // An effect with no config yet is being turned into an aura for the first time, so two things are
   // assumed about the intent. The switch starts on, because starting it off meant configuring
   // everything correctly, saving, and having nothing happen. And the known table is consulted for a
