@@ -1,7 +1,7 @@
 {
   "id": "tricky-homebrew-rules",
   "title": "Tricky Homebrew Rules",
-  "description": "A collection of house rules for the dnd5e system, each independently switchable: maximized critical dice, a Maximize button for healing, turning any rolled number into a temporary bonus, naming effects after their source item, expiring effects when their duration runs out, and auras that radiate to tokens in range.",
+  "description": "A collection of house rules for the dnd5e system, each independently switchable: maximized critical dice, a Maximize button for healing, turning any rolled number into a temporary bonus, naming effects after their source item, expiring effects when their duration runs out, auras that radiate to tokens in range, self-targeted spells that apply themselves, and a panel showing what is running on the selected token.",
   "version": "0.12.0",
   "compatibility": {
     "minimum": "13",
