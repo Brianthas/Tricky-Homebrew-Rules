@@ -1066,13 +1066,16 @@ async function promptKnownAuraSetup() {
 
   let configured = 0;
   for (const [i, entry] of found.entries()) {
-    if (!result.pick?.[i]) continue;
+    // `DialogV2.input` returns FormDataExtended's object as-is, with no `expandObject`, so a field
+    // named "pick.0" arrives under the literal key "pick.0" rather than as `pick[0]`. Reading it as
+    // nested made every row falsy and skipped the lot, so this screen configured nothing at all.
+    if (!result[`pick.${i}`]) continue;
 
     try {
       await entry.effect.update({ showIcon: CONST.ACTIVE_EFFECT_SHOW_ICON.NEVER });
       await entry.effect.setFlag(MODULE_ID, AURA, {
         enabled: true,
-        radius: String(result.radius?.[i] ?? entry.known.radius).trim() || String(entry.known.radius),
+        radius: String(result[`radius.${i}`] ?? entry.known.radius).trim() || String(entry.known.radius),
         disposition: entry.known.disposition,
         applyToSelf: entry.known.applyToSelf,
         respectWalls: true,

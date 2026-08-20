@@ -4,6 +4,7 @@
 
 - An aura's range ring colour is now set per aura, in its Aura dialog. Left on **Automatic** it keeps the old behaviour, gold for auras reaching allies and red for those reaching enemies. Every aura configured before this update stays on Automatic, so nothing changes appearance until you pick a colour.
 - Useful when auras overlap: two paladins both radiating to allies drew two identical gold rings, with no way to tell which was whose.
+- **Set Up Known Auras configured nothing at all, and had not since it shipped in 0.10.0.** Foundry hands a dialog form back as flat keys, so a checkbox named `pick.0` arrives under the key `"pick.0"`, not as `pick[0]`. The apply loop read it as nested, found undefined on every row, and skipped all of them while still reporting success. Any aura that looked set up by it was in fact set up by hand.
 - The **Aura** dialog now pre-fills from the built-in table of known auras when the effect is not an aura yet. Configuring Aura of Life by hand offered a generic 10 feet, even though the table knew it was 30, because only the bulk setup consulted it. It fills in reach and "affects its own token" too, so Spirit Guardians arrives set to enemies rather than allies, and says when the values came from the table so they get checked rather than trusted.
 
 ## 0.11.0
