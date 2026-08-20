@@ -10,6 +10,7 @@ A collection of house rules for the Foundry VTT **dnd5e** system. Each rule is i
 | [Effect Names](#effect-names) | Names applied effects after the item that produced them. |
 | [Expire Effects](#expire-effects) | Removes effects once their duration runs out, including concentration spells. |
 | [Auras](#auras) | An effect radiates to tokens within a radius and keeps up as they move. |
+| [Self Effects](#self-effects) | A spell that can only target its caster applies itself, with no button to press. |
 
 ---
 
@@ -252,6 +253,42 @@ In both directions: you lose the effect, the caster loses the concentration, in 
 Only the active GM performs the removals, so several clients seeing the same turn change cannot race to delete the same effect.
 
 **Concentration is always deleted, never disabled.** dnd5e works out whether someone is concentrating by looking for the concentrating status on their effects, and never checks whether the effect is disabled. Switching a marker off would leave the caster still prompted for concentration saves and still holding a concentration slot for a spell that had ended, so the delete-or-disable setting deliberately does not apply here.
+
+---
+
+## Self Effects
+
+A spell whose range is **Self** applies its effect to the caster the moment it is cast, with no Apply Effect button to press.
+
+dnd5e posts a card and waits to be told who the effect goes on. For Shield or Mage Armor there is nobody else it could be, so the button asks a question with exactly one answer. Shield is the worst case, since it is cast in the middle of somebody else's attack roll.
+
+### What counts as self
+
+The **range** is the test, because that is the field that actually says so:
+
+| Spell | Range | Applied automatically |
+| --- | --- | --- |
+| Shield | Self | yes |
+| Aura of Life | Self, 30 ft emanation | yes |
+| Bless | 30 ft, affects creatures | no |
+| Shield of Faith | 15 ft, affects a creature | no |
+
+Anything that targets other creatures keeps its button and its choice of target.
+
+Emanations are centred on the caster but reach other creatures. The Auras rule spreads them from the caster's own copy, so including them is the default. A setting narrows it to spells that affect nobody else at all, for a game not using auras.
+
+### It applies effects the way dnd5e does
+
+The effect is created exactly as dnd5e's own button would create it, with the same `dependentOn`, `scaling` and `spellLevel` flags, and with its origin pointing at the concentration effect when the spell needs concentration. That is what lets dnd5e remove the effect when concentration breaks. Recasting refreshes the existing effect rather than stacking a second copy, matching what pressing the button twice does.
+
+Only the client that cast the spell writes anything, so a spell cast once is applied once rather than once per connected player.
+
+### Settings
+
+| Setting | Default | What it does |
+| --- | --- | --- |
+| **Self Effects: Apply Self-Targeted Spells Automatically** | On | Turns this rule on or off. |
+| **Self Effects: Which Spells** | Also emanations | Whether emanations centred on the caster are included, or only spells that affect nobody else. |
 
 ---
 

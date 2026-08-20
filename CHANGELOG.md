@@ -2,6 +2,15 @@
 
 ## 0.12.0
 
+### Self Effects, a new rule
+
+- A spell whose range is **Self** now applies its effect to the caster on casting, with no Apply Effect button to press. Shield is the case that hurts, since it is cast in the middle of someone else's attack roll.
+- Range is the test rather than a list of spell names, so Shield and Aura of Life apply themselves while Bless and Shield of Faith keep their button and their choice of target.
+- Effects are created exactly as dnd5e's own button creates them, including the concentration link, so an aura still disappears when its caster loses concentration. Recasting refreshes rather than stacking.
+- A setting narrows it to spells that affect nobody else at all, for a game not using auras.
+
+### Auras
+
 - An aura's range ring colour is now set per aura, in its Aura dialog. Left on **Automatic** it keeps the old behaviour, gold for auras reaching allies and red for those reaching enemies. Every aura configured before this update stays on Automatic, so nothing changes appearance until you pick a colour.
 - Useful when auras overlap: two paladins both radiating to allies drew two identical gold rings, with no way to tell which was whose.
 - The **Aura** button on a copy an aura applied now opens the original instead of configuring the copy. With "affects own token" on, the owner carries two effects of the same name, the aura and the copy of it, so choosing the wrong one was easy and the settings were silently discarded on the next pass. A copy is also no longer treated as a source, whatever flags it carries.
