@@ -45,6 +45,28 @@ const RING_STYLES = {
 
 const RING_STYLE_DEFAULT = "solid";
 
+/**
+ * Styles that hand the ring to Foundry's own light shaders instead of drawing it here.
+ *
+ * Stored as `light:<animation>`, so one dropdown covers both kinds and an unknown value falls back
+ * to a drawn ring rather than breaking.
+ */
+const LIGHT_PREFIX = "light:";
+
+/** Where a token's own light configuration is kept while an aura is borrowing it. */
+const LIGHT_STASH = "lightStash";
+
+/**
+ * The light animation an aura wants, or null if it draws its own ring.
+ * @param {string} style
+ * @returns {string|null}
+ */
+function lightAnimationOf(style) {
+  if (typeof style !== "string" || !style.startsWith(LIGHT_PREFIX)) return null;
+  const key = style.slice(LIGHT_PREFIX.length);
+  return CONFIG.Canvas.lightAnimations?.[key] ? key : null;
+}
+
 /** Applied over whatever the flag actually holds, so a partial config is still usable. */
 const DEFAULTS = {
   enabled: true,
@@ -65,10 +87,13 @@ const DEFAULTS = {
   // no colour at all, so empty has to keep meaning the old behaviour rather than black.
   colour: "",
 
-  // How the ring moves. Animation is done with transforms on each ring rather than by driving the
-  // token's light, which would overwrite whatever torch or lantern the token actually carries and
-  // would still be a light source in the scene's vision and darkness calculations.
-  style: RING_STYLE_DEFAULT
+  // How the ring is shown. Drawn styles are transforms applied to a ring this rule paints. Light
+  // styles hand it to Foundry's own shaders by borrowing the token's light, which looks far better
+  // but is limited to one per token and has to give the token's own light back afterwards.
+  style: RING_STYLE_DEFAULT,
+
+  // Foundry's coloration technique, used only by light styles. 1 is its own default.
+  coloration: 1
 };
 
 /** Ring colours used when an aura has no colour of its own. */
@@ -310,6 +335,7 @@ async function reconcile() {
     const desired = computeDesired(sources, tokens);
     await applyDifference(tokens, desired);
     for (const token of tokens) drawAuraRing(token);
+    await applyAuraLights(tokens);
   } catch (err) {
     console.error(`${MODULE_ID} | Aura reconcile failed. Auras may be stale until the next change.`, err);
   } finally {
@@ -735,7 +761,10 @@ function drawAuraRing(token) {
 
     const showing = auraEffectsOf(token.actor).filter(effect => {
       const config = auraConfig(effect);
-      return config?.enabled && config.showRadius && !effect.disabled && !effect.isSuppressed;
+      if (!config?.enabled || !config.showRadius || effect.disabled || effect.isSuppressed) return false;
+
+      // A light style is rendered by Foundry, so drawing a ring for it too would double it up.
+      return !lightAnimationOf(config.style);
     });
     if (!showing.length) return;
 
@@ -786,6 +815,130 @@ function drawAuraRing(token) {
   } catch (err) {
     console.error(`${MODULE_ID} | Failed to draw an aura ring.`, err);
   }
+}
+
+/* -------------------------------------------- */
+/*  Aura Lights                                 */
+/* -------------------------------------------- */
+
+/**
+ * Give every token the light its aura asked for, and give back the light it had.
+ *
+ * Foundry's light animations are the nicest looking rings available, and they only exist as
+ * properties of a light source. A token has exactly one, so this borrows it: the token's own
+ * configuration is stashed first and put back when no aura wants it any more.
+ *
+ * Deliberately no illumination and no vision. `luminosity: 0` means it contributes nothing to how
+ * bright anything is, and a token light grants no vision at all, confirmed by inspecting the created
+ * `PointLightSource`: `vision: false`. It paints colour and nothing else, which is the whole point.
+ *
+ * @param {object[]} tokens
+ */
+async function applyAuraLights(tokens) {
+  for (const token of tokens) {
+    try {
+      const doc = token.document;
+      const stash = doc.getFlag(MODULE_ID, LIGHT_STASH) ?? null;
+      const chosen = brightestAuraLight(token);
+
+      if (chosen) {
+        const wanted = lightDataFor(chosen.config, chosen.feet);
+
+        // Remember the token's real light the first time, never afterwards, so a stash taken while
+        // an aura was already running cannot record the aura's own light as the original.
+        if (!stash) await doc.setFlag(MODULE_ID, LIGHT_STASH, { original: doc.toObject().light, applied: wanted });
+        else if (!sameLight(stash.applied, wanted)) {
+          await doc.setFlag(MODULE_ID, LIGHT_STASH, { original: stash.original, applied: wanted });
+        }
+
+        if (!sameLight(doc.toObject().light, wanted)) await doc.update({ light: wanted });
+        continue;
+      }
+
+      if (!stash) continue;
+
+      // Only hand back the old light if the current one is still the one we wrote. If it has been
+      // edited since, the token has a light somebody actually wanted and overwriting it would be
+      // worse than leaving it.
+      if (sameLight(doc.toObject().light, stash.applied)) await doc.update({ light: stash.original });
+      await doc.unsetFlag(MODULE_ID, LIGHT_STASH);
+    } catch (err) {
+      console.error(`${MODULE_ID} | Failed to update the aura light on "${token.name}".`, err);
+    }
+  }
+}
+
+/**
+ * The aura whose light this token should be showing, or null.
+ *
+ * One light per token, so where several auras ask for one the widest wins. The largest is the one
+ * that reads as the token's presence on the map, and the smaller ones still draw their own rings.
+ *
+ * @param {object} token
+ * @returns {{config: object, feet: number}|null}
+ */
+function brightestAuraLight(token) {
+  let best = null;
+
+  for (const effect of auraEffectsOf(token.actor)) {
+    const config = auraConfig(effect);
+    if (!config?.enabled || !config.showRadius) continue;
+    if (effect.disabled || effect.isSuppressed) continue;
+    if (!lightAnimationOf(config.style)) continue;
+
+    const feet = resolveNumber(config.radius, token.actor);
+    if (!(feet > 0)) continue;
+    if (!best || feet > best.feet) best = { config, feet };
+  }
+
+  return best;
+}
+
+/**
+ * The light configuration for one aura.
+ * @param {object} config
+ * @param {number} feet
+ * @returns {object}
+ */
+function lightDataFor(config, feet) {
+  return {
+    dim: feet,
+    bright: 0,
+
+    // Zero luminosity is what makes this a decoration rather than a lamp: the light contributes
+    // nothing to illumination, so a dark room stays dark.
+    luminosity: 0,
+
+    alpha: 0.4,
+    color: toHex(ringColour(config)),
+    attenuation: 0.6,
+    coloration: Number(config.coloration) || 1,
+    angle: 360,
+    saturation: 0,
+    contrast: 0,
+    shadows: 0,
+    negative: false,
+    priority: 0,
+    animation: { type: lightAnimationOf(config.style), speed: 4, intensity: 5, reverse: false },
+    darkness: { min: 0, max: 1 }
+  };
+}
+
+/**
+ * Do two light configurations say the same thing?
+ *
+ * Compared on the fields this rule sets rather than by deep equality, so an unrelated field left at
+ * its default does not trigger a pointless write on every single reconcile.
+ *
+ * @param {object} a
+ * @param {object} b
+ * @returns {boolean}
+ */
+function sameLight(a, b) {
+  if (!a || !b) return false;
+  const keys = ["dim", "bright", "luminosity", "alpha", "color", "attenuation", "coloration", "angle"];
+  for (const key of keys) if (a[key] !== b[key]) return false;
+  return (a.animation?.type ?? null) === (b.animation?.type ?? null);
 }
 
 /**
@@ -1083,12 +1236,32 @@ async function promptAuraConfig(effect) {
       <label>${L("Style")}</label>
       <div class="form-fields">
         <select name="style">
-          ${Object.keys(RING_STYLES).map(key =>
-            `<option value="${key}"${(current.style ?? RING_STYLE_DEFAULT) === key ? " selected" : ""}>${L("Style" + key.charAt(0).toUpperCase() + key.slice(1))}</option>`
-          ).join("")}
+          <optgroup label="${L("StyleGroupDrawn")}">
+            ${Object.keys(RING_STYLES).map(key =>
+              `<option value="${key}"${(current.style ?? RING_STYLE_DEFAULT) === key ? " selected" : ""}>${L("Style" + key.charAt(0).toUpperCase() + key.slice(1))}</option>`
+            ).join("")}
+          </optgroup>
+          <optgroup label="${L("StyleGroupLight")}">
+            ${Object.entries(CONFIG.Canvas.lightAnimations ?? {}).map(([key, anim]) => {
+              const value = LIGHT_PREFIX + key;
+              const label = game.i18n.localize(anim.label ?? key);
+              return `<option value="${value}"${current.style === value ? " selected" : ""}>${label}</option>`;
+            }).join("")}
+          </optgroup>
         </select>
       </div>
       <p class="hint">${L("StyleHint")}</p>
+    </div>
+    <div class="form-group">
+      <label>${L("Coloration")}</label>
+      <div class="form-fields">
+        <select name="coloration">
+          ${Object.entries(foundry.canvas.rendering.shaders.AdaptiveColorationShader.SHADER_TECHNIQUES ?? {})
+            .map(([key, tech]) => `<option value="${tech.id}"${Number(current.coloration ?? 1) === tech.id ? " selected" : ""}>${game.i18n.localize(tech.label ?? key)}</option>`)
+            .join("")}
+        </select>
+      </div>
+      <p class="hint">${L("ColorationHint")}</p>
     </div>
     <div class="form-group tricky-aura-colour">
       <label>${L("Colour")}</label>
@@ -1135,7 +1308,10 @@ async function promptAuraConfig(effect) {
       stacks: !!result.stacks,
       showRadius: !!result.showRadius,
       colour: result.autoColour ? "" : String(result.colour ?? "").trim(),
-      style: RING_STYLES[result.style] !== undefined ? result.style : RING_STYLE_DEFAULT,
+      style: (RING_STYLES[result.style] !== undefined || lightAnimationOf(result.style))
+        ? result.style
+        : RING_STYLE_DEFAULT,
+      coloration: Number(result.coloration) || 1,
       strength: String(result.strength ?? "").trim()
     });
     scheduleReconcile();

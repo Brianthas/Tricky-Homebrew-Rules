@@ -368,7 +368,20 @@ An aura draws its reach on the token, measured from the token's **edge** rather 
 
 Each aura also picks a **ring style**: solid, pulse, breathe, glow, or rotating dashes. The animation is a transform applied to the ring each frame, so nothing is redrawn while it moves.
 
-These are drawn by this module rather than by the token's light. Foundry's light animations are properties of a light source, so using them would mean writing to `token.light`, which overwrites whatever torch or lantern the token actually carries and still counts as a light source in the scene's vision and darkness. A ring that decorates the token should not change what anyone can see.
+### Foundry's own light effects
+
+Below the drawn styles, the dropdown lists all of Foundry's light animations: emanation, dome, pulse, energy, vortex, starlight and the rest, plus its coloration techniques. These are the shaders the prototype token light uses, and they look considerably better than anything drawn by hand.
+
+They work by borrowing the token's light, which has consequences worth knowing:
+
+| | |
+| --- | --- |
+| Does it light the scene? | **No.** `luminosity: 0`, so it contributes nothing to illumination. A dark room stays dark. |
+| Does it reveal terrain? | **No.** A token light grants no vision; the created source reports `vision: false`. |
+| How many per token? | **One.** Foundry gives a token a single light, so the widest aura gets it and any others fall back to drawn rings. |
+| What about the token's own torch? | Stashed before the aura takes over, and put back when no aura wants the light any more. If the light has been edited in the meantime it is left alone rather than overwritten. |
+
+Drawn styles remain the default, and nothing touches a token's light unless a light effect is chosen.
 
 Colour is set per aura in its Aura dialog. Left on **Automatic** it uses gold for auras that reach allies and red for those that reach enemies. Pick a colour instead when several auras overlap and you want to tell at a glance which ring is whose.
 
