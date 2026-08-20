@@ -873,6 +873,36 @@ function onRenderEffectConfig(app, html) {
 }
 
 /**
+ * Keep the ring colour swatch and its "automatic" switch honest about each other.
+ *
+ * Automatic silently overrode the swatch: picking a colour with the box still ticked stored an empty
+ * colour, so the choice vanished and the ring looked broken. Picking a colour is an unambiguous
+ * request for that colour, so it turns Automatic off. Turning Automatic back on repaints the swatch
+ * with the colour it will actually use, so the two controls never disagree on screen.
+ *
+ * @param {object} dialog
+ */
+function bindColourControls(dialog) {
+  try {
+    const root = dialog?.element;
+    const swatch = root?.querySelector("input[name=colour]");
+    const auto = root?.querySelector("input[name=autoColour]");
+    if (!swatch || !auto) return;
+
+    swatch.addEventListener("input", () => { auto.checked = false; });
+
+    auto.addEventListener("change", () => {
+      if (!auto.checked) return;
+      const select = root.querySelector("select[name=disposition]");
+      const disposition = Number(select?.value ?? DISPOSITION.ALLIES);
+      swatch.value = toHex(ringColour({ disposition }));
+    });
+  } catch (err) {
+    console.error(`${MODULE_ID} | Failed to wire up the aura colour controls.`, err);
+  }
+}
+
+/**
  * Ask for an effect's aura settings and store them.
  * @param {object} effect
  */
@@ -956,7 +986,8 @@ async function promptAuraConfig(effect) {
   const result = await foundry.applications.api.DialogV2.input({
     window: { title: game.i18n.format("THR.Rules.Auras.Config.Title", { name: effect.name }) },
     content,
-    ok: { label: game.i18n.localize("THR.Rules.Auras.Config.Save"), icon: "fa-solid fa-check" }
+    ok: { label: game.i18n.localize("THR.Rules.Auras.Config.Save"), icon: "fa-solid fa-check" },
+    render: (event, dialog) => bindColourControls(dialog)
   });
   if (!result) return;
 
