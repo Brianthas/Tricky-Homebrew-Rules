@@ -379,7 +379,8 @@ They work by borrowing the token's light, which has consequences worth knowing:
 | Does it light the scene? | **No.** `luminosity: 0`, so it contributes nothing to illumination. A dark room stays dark. |
 | Does it reveal terrain? | **No.** A token light grants no vision; the created source reports `vision: false`. |
 | How many per token? | **One.** Foundry gives a token a single light, so the widest aura gets it and any others fall back to drawn rings. |
-| What about the token's own torch? | Stashed before the aura takes over, and put back when no aura wants the light any more. If the light has been edited in the meantime it is left alone rather than overwritten. |
+| What about the token's own torch? | **An aura never takes a light the token is actually using.** A token with any dim or bright radius keeps it, and the aura draws a ring instead. Put the torch out and the aura takes the light on its own. |
+| What if the token has no light? | The aura borrows it, stashing whatever was configured, and gives it back when no aura wants it. If that light has been edited in the meantime it is left alone rather than overwritten. |
 
 Drawn styles remain the default, and nothing touches a token's light unless a light effect is chosen.
 

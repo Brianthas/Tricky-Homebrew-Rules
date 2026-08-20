@@ -4,6 +4,7 @@
 
 - Aura rings can now use **Foundry's own light effects**: emanation, dome, pulse, energy, vortex and the rest, with its coloration techniques. These are the shaders behind the prototype token light settings and look far better than a drawn circle.
 - They emit no light and reveal nothing. `luminosity: 0` means no contribution to illumination, and a token light grants no vision at all, so a dark room stays dark and no terrain is uncovered. Verified against the created `PointLightSource` rather than assumed.
+- **An aura never takes a light the token is actually using.** These lights emit nothing by design, so replacing a torch with one would leave a character dark in a dark room. A token carrying any light keeps it and the aura draws a ring instead; put the torch out and the aura picks the light up by itself.
 - A token has one light, so the widest aura asking for one gets it and the rest keep drawn rings. The token's own light is stashed first and handed back when no aura needs it, and is left alone if it has been edited in the meantime.
 - Drawn rings are unchanged and remain the default. Nothing touches a token's light unless a light effect is picked.
 

@@ -280,7 +280,9 @@ function onEffectChanged(effect) {
  * @param {object} [changes]
  */
 function onTokenChanged(token, changes) {
-  if (changes && !["elevation", "disposition", "hidden", "width", "height"].some(k => k in changes)) return;
+  // A light change matters both ways: putting a torch out frees the light for an aura to use, and
+  // lighting one means an aura has to give it back.
+  if (changes && !["elevation", "disposition", "hidden", "width", "height", "light"].some(k => k in changes)) return;
   scheduleReconcile();
 }
 
@@ -762,7 +764,7 @@ function drawAuraRing(token) {
     // Whichever aura took the token's light is rendered by Foundry, so drawing a ring for it too
     // would double it up. Every other aura draws, including one that asked for the light and lost:
     // a token has only one, and the loser showing nothing at all is worse than it showing a ring.
-    const lit = brightestAuraLight(token)?.effect ?? null;
+    const lit = auraLightFor(token)?.effect ?? null;
 
     const showing = auraEffectsOf(token.actor).filter(effect => {
       const config = auraConfig(effect);
@@ -842,7 +844,7 @@ async function applyAuraLights(tokens) {
     try {
       const doc = token.document;
       const stash = doc.getFlag(MODULE_ID, LIGHT_STASH) ?? null;
-      const chosen = brightestAuraLight(token);
+      const chosen = auraLightFor(token);
 
       if (chosen) {
         const wanted = lightDataFor(chosen.config, chosen.feet);
@@ -872,7 +874,31 @@ async function applyAuraLights(tokens) {
 }
 
 /**
- * The aura whose light this token should be showing, or null.
+ * Is this token already using its light for something real?
+ *
+ * A torch is not decoration. Replacing one with an aura effect would leave the character emitting
+ * nothing at all, since these lights are deliberately `luminosity: 0`, and in a dark room that is
+ * the difference between seeing and not. An aura is worth a ring, never someone's light source, so
+ * it stands down and draws a ring instead.
+ *
+ * The stash is what tells the two apart: if this rule is already borrowing the light, the light on
+ * the token right now is the aura's own and must not be read as a torch.
+ *
+ * @param {object} doc
+ * @param {object|null} stash
+ * @returns {boolean}
+ */
+function carryingOwnLight(doc, stash) {
+  const light = stash ? stash.original : doc.toObject().light;
+  return (light?.dim > 0) || (light?.bright > 0);
+}
+
+/**
+ * The aura that gets this token's light, or null if none does.
+ *
+ * The single answer to "is this token's light spoken for", asked by the drawing code and the light
+ * code alike. When they each decided it separately, an aura that asked for the light and was refused
+ * fell between the two and rendered nothing at all.
  *
  * One light per token, so where several auras ask for one the widest wins. The largest is the one
  * that reads as the token's presence on the map, and the smaller ones still draw their own rings.
@@ -880,7 +906,11 @@ async function applyAuraLights(tokens) {
  * @param {object} token
  * @returns {{effect: object, config: object, feet: number}|null}
  */
-function brightestAuraLight(token) {
+function auraLightFor(token) {
+  const doc = token.document;
+  const stash = doc.getFlag(MODULE_ID, LIGHT_STASH) ?? null;
+  if (carryingOwnLight(doc, stash)) return null;
+
   let best = null;
 
   for (const effect of auraEffectsOf(token.actor)) {
