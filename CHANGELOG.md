@@ -6,6 +6,7 @@
 - They emit no light and reveal nothing. `luminosity: 0` means no contribution to illumination, and a token light grants no vision at all, so a dark room stays dark and no terrain is uncovered. Verified against the created `PointLightSource` rather than assumed.
 - **An aura never takes a light the token is actually using.** These lights emit nothing by design, so replacing a torch with one would leave a character dark in a dark room. A token carrying any light keeps it and the aura draws a ring instead; put the torch out and the aura picks the light up by itself.
 - A token has one light, so the widest aura asking for one gets it and the rest keep drawn rings. The token's own light is stashed first and handed back when no aura needs it, and is left alone if it has been edited in the meantime.
+- **An aura that is doing nothing no longer looks like it is.** A combat-only aura outside combat applied no effects, correctly, but still drew its ring and lit its token, which at the table reads as a buff that is running while nobody is getting it. Whether an aura is live is now decided in one place and honoured by the effects, the ring and the light alike.
 - Drawn rings are unchanged and remain the default. Nothing touches a token's light unless a light effect is picked.
 
 ## 0.12.0

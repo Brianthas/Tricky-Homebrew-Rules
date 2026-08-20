@@ -372,16 +372,31 @@ function ensureSourceIcons(sources) {
  * @param {object[]} tokens
  * @returns {object[]}
  */
+/**
+ * Is this aura actually doing something right now?
+ *
+ * The one place that decides it. Asking separately in each of the three places that care led to an
+ * aura that applied nothing out of combat still lighting its token and drawing its ring, which reads
+ * at the table as a buff that is running when nobody is getting it.
+ *
+ * @param {object} effect
+ * @param {object} config
+ * @returns {boolean}
+ */
+function auraIsLive(effect, config) {
+  if (!config?.enabled) return false;
+  if (effect.disabled || effect.isSuppressed) return false;
+  if (config.combatOnly && !game.combat?.started) return false;
+  return true;
+}
+
 function collectSources(tokens) {
-  const inCombat = !!game.combat?.started;
   const sources = [];
 
   for (const token of tokens) {
     for (const effect of auraEffectsOf(token.actor)) {
       const config = auraConfig(effect);
-      if (!config.enabled) continue;
-      if (effect.disabled || effect.isSuppressed) continue;
-      if (config.combatOnly && !inCombat) continue;
+      if (!auraIsLive(effect, config)) continue;
 
       const radius = resolveNumber(config.radius, token.actor);
       if (!(radius > 0)) continue;
@@ -768,7 +783,7 @@ function drawAuraRing(token) {
 
     const showing = auraEffectsOf(token.actor).filter(effect => {
       const config = auraConfig(effect);
-      if (!config?.enabled || !config.showRadius || effect.disabled || effect.isSuppressed) return false;
+      if (!auraIsLive(effect, config) || !config.showRadius) return false;
       return effect !== lit;
     });
     if (!showing.length) return;
@@ -915,8 +930,7 @@ function auraLightFor(token) {
 
   for (const effect of auraEffectsOf(token.actor)) {
     const config = auraConfig(effect);
-    if (!config?.enabled || !config.showRadius) continue;
-    if (effect.disabled || effect.isSuppressed) continue;
+    if (!auraIsLive(effect, config) || !config.showRadius) continue;
     if (!lightAnimationOf(config.style)) continue;
 
     const feet = resolveNumber(config.radius, token.actor);
