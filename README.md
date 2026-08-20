@@ -11,6 +11,7 @@ A collection of house rules for the Foundry VTT **dnd5e** system. Each rule is i
 | [Expire Effects](#expire-effects) | Removes effects once their duration runs out, including concentration spells. |
 | [Auras](#auras) | An effect radiates to tokens within a radius and keeps up as they move. |
 | [Self Effects](#self-effects) | A spell that can only target its caster applies itself, with no button to press. |
+| [Effects Panel](#effects-panel) | The selected token's effects, listed beside the sidebar, removable in one click. |
 
 ---
 
@@ -253,6 +254,39 @@ In both directions: you lose the effect, the caster loses the concentration, in 
 Only the active GM performs the removals, so several clients seeing the same turn change cannot race to delete the same effect.
 
 **Concentration is always deleted, never disabled.** dnd5e works out whether someone is concentrating by looking for the concentrating status on their effects, and never checks whether the effect is disabled. Switching a marker off would leave the caster still prompted for concentration saves and still holding a concentration slot for a spell that had ended, so the delete-or-disable setting deliberately does not apply here.
+
+---
+
+## Effects Panel
+
+Select a token and its active effects are listed at the top right, beside the sidebar, each with a button to remove it. The same idea as the panel pf2e ships, which dnd5e has no equivalent of: effects otherwise live on the character sheet, two clicks and a tab away from the table.
+
+Click an effect's icon or name to open it. The cross removes it, so removal is always the deliberate action rather than the accidental one.
+
+### Where it sits
+
+Inside `#ui-right-column-1`, the flex column that already holds chat notifications. That means it sits left of the sidebar and follows the sidebar being collapsed on its own, rather than this rule having to know the sidebar's width or watch for it changing.
+
+### What it will not remove for you
+
+| Kind of effect | The button does |
+| --- | --- |
+| An ordinary effect on the actor | deletes it |
+| An effect granted by an item, like a fighting style | switches it off, since deleting it would edit the character |
+| A copy applied by an aura | nothing, and says which token it radiates from |
+
+An aura copy is owned by the Auras rule and would be recreated on the next pass, so a remove button on one would visibly do nothing. It names the source instead, which is what you need in order to go and turn the aura off.
+
+An aura that affects its own token leaves its owner holding the aura and a copy of it, under the same name and icon. The panel lists only the aura in that case. A copy radiating from somebody else still gets its row, because "you have this because of that paladin" is worth knowing.
+
+### Settings
+
+Both are per person rather than per world, since this is about one player's screen.
+
+| Setting | Default | What it does |
+| --- | --- | --- |
+| **Effects Panel: Show Effects Beside The Sidebar** | On | Turns the panel on or off. |
+| **Effects Panel: Which Effects** | Everything active | Everything running, or only effects that run out on their own. |
 
 ---
 

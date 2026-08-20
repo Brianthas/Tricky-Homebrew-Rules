@@ -2,6 +2,13 @@
 
 ## 0.12.0
 
+### Effects Panel, a new rule
+
+- Selecting a token now lists its active effects at the top right beside the sidebar, each with a button to remove it, in the style of the panel pf2e ships. dnd5e keeps effects on the character sheet, two clicks and a tab away from the table.
+- Clicking an icon or name opens the effect, so removal is always deliberate. An effect granted by an item is switched off rather than deleted, since deleting it would edit the character.
+- A copy applied by an aura cannot be removed here, because the Auras rule would put it straight back. It names the token it radiates from instead. Where an aura affects its own token, only the aura is listed rather than the aura and its copy under the same name.
+- Both settings are per person rather than per world.
+
 ### Self Effects, a new rule
 
 - A spell whose range is **Self** now applies its effect to the caster on casting, with no Apply Effect button to press. Shield is the case that hurts, since it is cast in the middle of someone else's attack roll.

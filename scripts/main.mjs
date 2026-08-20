@@ -6,6 +6,7 @@ import { sourceNamedEffects } from "./rules/source-named-effects.mjs";
 import { expireEffects } from "./rules/expire-effects.mjs";
 import { auras } from "./rules/auras.mjs";
 import { selfEffects } from "./rules/self-effects.mjs";
+import { effectsPanel } from "./rules/effects-panel.mjs";
 
 /**
  * Every house rule this module provides. Adding a rule means writing one file under `rules/` that
@@ -18,7 +19,7 @@ import { selfEffects } from "./rules/self-effects.mjs";
  *   registerPatches()  Called during `init`. Register libWrapper patches and hooks.
  *   onReady()          Called during `ready`, once the world and other modules exist.
  */
-const RULES = [criticalDice, maxHealing, rollToBonus, sourceNamedEffects, expireEffects, auras, selfEffects];
+const RULES = [criticalDice, maxHealing, rollToBonus, sourceNamedEffects, expireEffects, auras, selfEffects, effectsPanel];
 
 Hooks.once("init", () => {
   if (!CONFIG.DND5E) {
