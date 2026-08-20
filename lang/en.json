@@ -125,6 +125,13 @@
   "THR.Rules.SelfEffects.Settings.Scope.Emanations": "Also emanations centred on the caster (Aura of Life)",
   "THR.Rules.Auras.Config.CopyRedirect": "That is a copy this aura applied, not the aura itself. Opening the original instead, so the settings stick.",
   "THR.Rules.Auras.Config.CopyOrphan": "That is a copy of an aura whose original no longer exists. It will be cleared up on the next pass.",
+  "THR.Rules.Auras.Config.Style": "Ring style",
+  "THR.Rules.Auras.Config.StyleHint": "How the range ring moves. Drawn by this module rather than by the token's light, so it never disturbs vision, darkness, or a torch the token happens to be carrying.",
+  "THR.Rules.Auras.Config.Stylesolid": "Solid",
+  "THR.Rules.Auras.Config.Stylepulse": "Pulse",
+  "THR.Rules.Auras.Config.Stylebreathe": "Breathe",
+  "THR.Rules.Auras.Config.Styleglow": "Glow",
+  "THR.Rules.Auras.Config.Stylerotate": "Rotating dashes",
   "THR.Rules.Auras.Config.Colour": "Ring colour",
   "THR.Rules.Auras.Config.AutoColour": "Automatic",
   "THR.Rules.Auras.Config.ColourHint": "The colour of the range ring drawn on the token. Automatic uses yellow for auras that reach allies and red for ones that reach enemies. Pick a colour to tell overlapping auras apart."

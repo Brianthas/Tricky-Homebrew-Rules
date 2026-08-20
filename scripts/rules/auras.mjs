@@ -28,6 +28,23 @@ const STASHED = "trickyAuraChanges";
  */
 const DISPOSITION = { ANY: 0, ALLIES: 1, ENEMIES: -1 };
 
+/**
+ * How an aura's ring animates. Each is a transform applied to the ring every frame, so nothing is
+ * redrawn while it animates and the cost stays flat however many rings are on screen.
+ */
+const RING_STYLES = {
+  solid: null,
+  pulse: (g, t) => { g.alpha = 0.55 + 0.45 * (0.5 + 0.5 * Math.sin(t * 0.004 + g.trickyPhase)); },
+  breathe: (g, t) => {
+    const scale = 1 + 0.035 * Math.sin(t * 0.0018 + g.trickyPhase);
+    g.scale.set(scale, scale);
+  },
+  glow: (g, t) => { g.alpha = 0.35 + 0.65 * (0.5 + 0.5 * Math.sin(t * 0.0011 + g.trickyPhase)); },
+  rotate: (g, t) => { g.rotation = (t * 0.0004 + g.trickyPhase) % (Math.PI * 2); }
+};
+
+const RING_STYLE_DEFAULT = "solid";
+
 /** Applied over whatever the flag actually holds, so a partial config is still usable. */
 const DEFAULTS = {
   enabled: true,
@@ -46,7 +63,12 @@ const DEFAULTS = {
 
   // Empty means "pick from disposition". Every aura configured before this option existed stores
   // no colour at all, so empty has to keep meaning the old behaviour rather than black.
-  colour: ""
+  colour: "",
+
+  // How the ring moves. Animation is done with transforms on each ring rather than by driving the
+  // token's light, which would overwrite whatever torch or lantern the token actually carries and
+  // would still be a light source in the scene's vision and darkness calculations.
+  style: RING_STYLE_DEFAULT
 };
 
 /** Ring colours used when an aura has no colour of its own. */
@@ -675,6 +697,7 @@ function resolveNumber(value, actor) {
 
 /** Where the ring graphic is parked on the token, so it can be found and replaced. */
 const RING = "trickyAuraRing";
+const RING_TICKER = "trickyAuraRingTicker";
 
 /**
  * Draw the reach of every aura this token radiates.
@@ -706,10 +729,7 @@ function toHex(value) {
 
 function drawAuraRing(token) {
   try {
-    if (token?.[RING]) {
-      token[RING].destroy();
-      delete token[RING];
-    }
+    clearAuraRing(token);
     if (!isRuleEnabled(RULE_ID)) return;
     if (!token?.actor || !canvas?.scene) return;
 
@@ -721,8 +741,8 @@ function drawAuraRing(token) {
 
     const perFoot = canvas.scene.dimensions.distancePixels;
     const edge = Math.max(token.w, token.h) / 2;
-    const graphics = new PIXI.Graphics();
-    let drew = false;
+    const container = new PIXI.Container();
+    let animated = false;
 
     for (const effect of showing) {
       const config = auraConfig(effect);
@@ -730,23 +750,100 @@ function drawAuraRing(token) {
       if (!(feet > 0)) continue;
 
       const colour = ringColour(config);
-      graphics.lineStyle(3, colour, 0.65);
-      graphics.beginFill(colour, 0.05);
-      graphics.drawCircle(token.w / 2, token.h / 2, (feet * perFoot) + edge);
-      graphics.endFill();
-      drew = true;
+      const radius = (feet * perFoot) + edge;
+
+      // Each aura gets its own graphics so styles and colours stay independent, and each is drawn
+      // around its own origin so rotating or scaling it pivots on the token rather than the corner.
+      const g = new PIXI.Graphics();
+      g.position.set(token.w / 2, token.h / 2);
+      g.lineStyle(3, colour, 0.65);
+      g.beginFill(colour, 0.05);
+
+      const style = RING_STYLES[config.style] ? config.style : RING_STYLE_DEFAULT;
+      if (style === "rotate") drawDashedCircle(g, radius);
+      else g.drawCircle(0, 0, radius);
+
+      g.endFill();
+
+      // A phase offset per ring so two auras on one token do not beat in lockstep.
+      g.trickyPhase = Math.random() * Math.PI * 2;
+      g.trickyStyle = style;
+      if (RING_STYLES[style]) animated = true;
+
+      container.addChild(g);
     }
 
-    if (!drew) {
-      graphics.destroy();
+    if (!container.children.length) {
+      container.destroy({ children: true });
       return;
     }
 
     // Behind the token art, so a ring never obscures the creature standing in it.
-    token.addChildAt(graphics, 0);
-    token[RING] = graphics;
+    token.addChildAt(container, 0);
+    token[RING] = container;
+
+    if (animated) startRingAnimation(token, container);
   } catch (err) {
     console.error(`${MODULE_ID} | Failed to draw an aura ring.`, err);
+  }
+}
+
+/**
+ * Remove a token's rings and stop animating them.
+ *
+ * The ticker callback holds a reference to the container, so dropping the container without
+ * unhooking the ticker would animate a destroyed display object on every frame for the rest of the
+ * session.
+ *
+ * @param {object} token
+ */
+function clearAuraRing(token) {
+  if (token?.[RING_TICKER]) {
+    canvas.app?.ticker?.remove(token[RING_TICKER]);
+    delete token[RING_TICKER];
+  }
+  if (token?.[RING]) {
+    if (!token[RING].destroyed) token[RING].destroy({ children: true });
+    delete token[RING];
+  }
+}
+
+/**
+ * Animate one token's rings for as long as they exist.
+ * @param {object} token
+ * @param {object} container
+ */
+function startRingAnimation(token, container) {
+  const tick = () => {
+    // The canvas can tear a token down without this rule hearing about it, so the callback checks
+    // rather than trusting that it was cleaned up.
+    if (container.destroyed || !container.parent) {
+      canvas.app?.ticker?.remove(tick);
+      return;
+    }
+    const now = performance.now();
+    for (const g of container.children) {
+      const animate = RING_STYLES[g.trickyStyle];
+      if (animate) animate(g, now);
+    }
+  };
+
+  token[RING_TICKER] = tick;
+  canvas.app?.ticker?.add(tick);
+}
+
+/**
+ * A ring of dashes rather than a solid circle, so that rotating it actually reads as movement.
+ * @param {object} g
+ * @param {number} radius
+ */
+function drawDashedCircle(g, radius) {
+  const dashes = 24;
+  const step = (Math.PI * 2) / dashes;
+  for (let i = 0; i < dashes; i++) {
+    const start = i * step;
+    g.arc(0, 0, radius, start, start + (step * 0.55));
+    g.moveTo(Math.cos(start + step) * radius, Math.sin(start + step) * radius);
   }
 }
 
@@ -982,6 +1079,17 @@ async function promptAuraConfig(effect) {
       <label>${L("ShowRadius")}</label>
       <div class="form-fields"><input type="checkbox" name="showRadius"${checked(current.showRadius)}></div>
     </div>
+    <div class="form-group">
+      <label>${L("Style")}</label>
+      <div class="form-fields">
+        <select name="style">
+          ${Object.keys(RING_STYLES).map(key =>
+            `<option value="${key}"${(current.style ?? RING_STYLE_DEFAULT) === key ? " selected" : ""}>${L("Style" + key.charAt(0).toUpperCase() + key.slice(1))}</option>`
+          ).join("")}
+        </select>
+      </div>
+      <p class="hint">${L("StyleHint")}</p>
+    </div>
     <div class="form-group tricky-aura-colour">
       <label>${L("Colour")}</label>
       <div class="form-fields">
@@ -1027,6 +1135,7 @@ async function promptAuraConfig(effect) {
       stacks: !!result.stacks,
       showRadius: !!result.showRadius,
       colour: result.autoColour ? "" : String(result.colour ?? "").trim(),
+      style: RING_STYLES[result.style] !== undefined ? result.style : RING_STYLE_DEFAULT,
       strength: String(result.strength ?? "").trim()
     });
     scheduleReconcile();
