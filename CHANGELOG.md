@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.14.0
+
+- **Auras now account for elevation.** They were measured purely on the flat grid, so a dragon hovering sixty feet up sat inside every aura on the ground and a paladin buffed an ally flying overhead. Foundry does the measuring once the waypoints carry a height, using the scene's own diagonal rule, so a token a hundred feet up is a hundred feet away.
+- Height is read from the token's stored elevation rather than its animated one. Foundry animates a climb over several seconds, and reconciling against a value partway up never corrected itself afterwards, because animation frames are not document changes.
+
 ## 0.13.1
 
 - Copies applied by an aura are now named after the token radiating them, so a paladin's sheet reads **Aura of Protection** for the aura and **Aura of Protection (from Paladin 2)** for the copy that actually grants the bonus. Two identically named passive effects gave no way to tell which was which, and editing the wrong one is what ended a concentration spell earlier.

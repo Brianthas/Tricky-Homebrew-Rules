@@ -283,6 +283,7 @@ function onTokenChanged(token, changes) {
   // A light change matters both ways: putting a torch out frees the light for an aura to use, and
   // lighting one means an aura has to give it back.
   if (changes && !["elevation", "disposition", "hidden", "width", "height", "light"].some(k => k in changes)) return;
+
   scheduleReconcile();
 }
 
@@ -502,6 +503,10 @@ function appliesTo(source, token) {
  * space, not from the middle of it, so a 3x3 giant reaches three squares further than its centre
  * suggests.
  *
+ * Elevation counts. Without it a dragon hovering sixty feet up sat inside every aura on the ground,
+ * and a paladin buffed an ally flying overhead. Foundry measures it for us once the waypoints carry
+ * it, using the scene's own diagonal rule, so a token a hundred feet up is a hundred feet away.
+ *
  * @param {object} a
  * @param {object} b
  * @returns {number}
@@ -509,7 +514,10 @@ function appliesTo(source, token) {
 function tokenDistance(a, b) {
   const grid = canvas.grid;
   if (grid.type === CONST.GRID_TYPES.GRIDLESS) {
-    return grid.measurePath([a.center, b.center]).distance;
+    return grid.measurePath([
+      { ...a.center, elevation: elevationOf(a) },
+      { ...b.center, elevation: elevationOf(b) }
+    ]).distance;
   }
 
   let shortest = Infinity;
@@ -523,7 +531,23 @@ function tokenDistance(a, b) {
 }
 
 /**
- * The centre point of every grid cell a token stands on.
+ * How high a token is, for measuring purposes.
+ *
+ * The stored value rather than the prepared one, because Foundry animates a climb: a token sent to
+ * a hundred feet reports every height on the way up, over several seconds. Reconciling against that
+ * measures a creature partway through its ascent and then never corrects itself, because animation
+ * frames are not document changes and nothing fires again at the top. The destination is also the
+ * honest answer for a rule: a creature ordered a hundred feet up is a hundred feet up.
+ *
+ * @param {object} token
+ * @returns {number}
+ */
+function elevationOf(token) {
+  return token?.document?._source?.elevation ?? token?.document?.elevation ?? 0;
+}
+
+/**
+ * The centre point of every grid cell a token stands on, at the token's elevation.
  * @param {object} token
  * @returns {object[]}
  */
@@ -535,13 +559,17 @@ function occupiedCells(token) {
   const columns = Math.max(1, Math.round(doc.width ?? 1));
   const rows = Math.max(1, Math.round(doc.height ?? 1));
 
+  const elevation = elevationOf(token);
   const points = [];
   for (let i = 0; i < columns; i++) {
     for (let j = 0; j < rows; j++) {
-      points.push(grid.getCenterPoint({
-        x: doc.x + (i * size) + (size / 2),
-        y: doc.y + (j * size) + (size / 2)
-      }));
+      points.push({
+        ...grid.getCenterPoint({
+          x: doc.x + (i * size) + (size / 2),
+          y: doc.y + (j * size) + (size / 2)
+        }),
+        elevation
+      });
     }
   }
   return points;

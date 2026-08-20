@@ -394,6 +394,8 @@ Selecting a token with auras adds a button to its HUD that turns all of them on 
 
 ### How it works
 
+Distance accounts for **elevation**. A creature flying sixty feet above a paladin is sixty feet away, not adjacent, measured with the scene's own diagonal rule.
+
 The rule **reconciles** rather than tracking events. Any relevant change (movement, an effect appearing, a wall opening, combat starting) triggers one pass that recomputes which tokens should be inside which auras and creates or deletes the difference.
 
 That is idempotent, which matters: a missed trigger corrects itself on the next one, instead of leaving a buff on someone who has walked away. It is also what makes "the strongest applies" free, since every pass recomputes the whole picture.
