@@ -1,5 +1,9 @@
 import { MODULE_ID } from "./lib/constants.mjs";
 import { criticalDice } from "./rules/critical-dice.mjs";
+import { maxHealing } from "./rules/max-healing.mjs";
+import { rollToBonus } from "./rules/roll-to-bonus.mjs";
+import { sourceNamedEffects } from "./rules/source-named-effects.mjs";
+import { expireEffects } from "./rules/expire-effects.mjs";
 
 /**
  * Every house rule this module provides. Adding a rule means writing one file under `rules/` that
@@ -12,7 +16,7 @@ import { criticalDice } from "./rules/critical-dice.mjs";
  *   registerPatches()  Called during `init`. Register libWrapper patches and hooks.
  *   onReady()          Called during `ready`, once the world and other modules exist.
  */
-const RULES = [criticalDice];
+const RULES = [criticalDice, maxHealing, rollToBonus, sourceNamedEffects, expireEffects];
 
 Hooks.once("init", () => {
   if (!CONFIG.DND5E) {

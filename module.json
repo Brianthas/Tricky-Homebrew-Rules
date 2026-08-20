@@ -1,8 +1,8 @@
 {
   "id": "tricky-homebrew-rules",
   "title": "Tricky Homebrew Rules",
-  "description": "A collection of house rules for the dnd5e system, each independently switchable. Currently: Critical Dice, which replaces the best dice of a critical hit with their maximum - chosen by potential gain rather than lowest roll, pooled across every damage part of the crit.",
-  "version": "0.3.1",
+  "description": "A collection of house rules for the dnd5e system, each independently switchable. Critical Dice maximizes the best dice of a critical hit. Max Healing adds a Maximize button to healing rolls. Roll to Bonus turns any rolled number into a temporary bonus. Effect Names names applied effects after their source item. Expire Effects removes effects when their duration runs out, which nothing else on Foundry 14 does.",
+  "version": "0.8.1",
   "compatibility": {
     "minimum": "13",
     "verified": "14"
@@ -37,7 +37,7 @@
     "scripts/main.mjs"
   ],
   "styles": [
-    "styles/critical-dice.css"
+    "styles/tricky-homebrew-rules.css"
   ],
   "languages": [
     {
