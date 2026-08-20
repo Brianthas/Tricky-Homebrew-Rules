@@ -759,12 +759,15 @@ function drawAuraRing(token) {
     if (!isRuleEnabled(RULE_ID)) return;
     if (!token?.actor || !canvas?.scene) return;
 
+    // Whichever aura took the token's light is rendered by Foundry, so drawing a ring for it too
+    // would double it up. Every other aura draws, including one that asked for the light and lost:
+    // a token has only one, and the loser showing nothing at all is worse than it showing a ring.
+    const lit = brightestAuraLight(token)?.effect ?? null;
+
     const showing = auraEffectsOf(token.actor).filter(effect => {
       const config = auraConfig(effect);
       if (!config?.enabled || !config.showRadius || effect.disabled || effect.isSuppressed) return false;
-
-      // A light style is rendered by Foundry, so drawing a ring for it too would double it up.
-      return !lightAnimationOf(config.style);
+      return effect !== lit;
     });
     if (!showing.length) return;
 
@@ -875,7 +878,7 @@ async function applyAuraLights(tokens) {
  * that reads as the token's presence on the map, and the smaller ones still draw their own rings.
  *
  * @param {object} token
- * @returns {{config: object, feet: number}|null}
+ * @returns {{effect: object, config: object, feet: number}|null}
  */
 function brightestAuraLight(token) {
   let best = null;
@@ -888,7 +891,7 @@ function brightestAuraLight(token) {
 
     const feet = resolveNumber(config.radius, token.actor);
     if (!(feet > 0)) continue;
-    if (!best || feet > best.feet) best = { config, feet };
+    if (!best || feet > best.feet) best = { effect, config, feet };
   }
 
   return best;
