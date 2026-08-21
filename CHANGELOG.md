@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.15.1
+
+- **Switching the Auras rule off now actually turns the auras off.** It stopped updating them but left every applied copy in place and every ring drawn, so a paladin kept granting saves with the rule disabled and no way to clear it but by hand. A borrowed token light was never handed back either. Whether the rule is on is now part of the single question of whether an aura is live, so turning it off tears down and turning it back on restores.
+- The module master switch reaches the rules the same way, rather than leaving behind whatever was applied when it was turned off.
+
 ## 0.15.0
 
 - **A startup check reports when Foundry or dnd5e moves something these rules reach into.** Most of these rules work by reaching into somebody else's code, and when one of those moves in an update the rule stops working without saying anything, surfacing mid-session as "why didn't that apply". Seven APIs are confirmed on load and a warning names the affected rules if any are gone. Silent when all is well.

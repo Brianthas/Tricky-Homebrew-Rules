@@ -1,6 +1,6 @@
 import { test, describe } from "node:test";
 import assert from "node:assert/strict";
-import { installStubs, fakeEffect } from "./stubs.mjs";
+import { installStubs, fakeEffect, setSetting } from "./stubs.mjs";
 
 installStubs();
 
@@ -136,5 +136,30 @@ describe("auraIsLive", () => {
     game.combat = { started: false };
     assert.equal(auraIsLive(fakeEffect(), { enabled: true, combatOnly: true }), false);
     game.combat = null;
+  });
+});
+
+describe("switching the rule off", () => {
+  test("no aura is live once the rule is disabled", () => {
+    // Off has to mean off. Bailing out of the reconcile instead left every applied copy in place
+    // and every ring drawn, so a paladin kept granting saves with the rule switched off and no way
+    // to clear it but by hand.
+    const restore = setSetting("aurasEnabled", false);
+    try {
+      assert.equal(auraIsLive(fakeEffect(), { enabled: true, combatOnly: false }), false);
+    } finally {
+      restore();
+    }
+    assert.equal(auraIsLive(fakeEffect(), { enabled: true, combatOnly: false }), true);
+  });
+
+  test("the master switch turns them off too", () => {
+    const restore = setSetting("moduleEnabled", false);
+    try {
+      assert.equal(auraIsLive(fakeEffect(), { enabled: true, combatOnly: false }), false);
+    } finally {
+      restore();
+    }
+    assert.equal(auraIsLive(fakeEffect(), { enabled: true, combatOnly: false }), true);
   });
 });

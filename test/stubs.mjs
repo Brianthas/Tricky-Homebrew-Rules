@@ -12,9 +12,18 @@
 
 /** Install the globals the rule modules touch. Call once, before importing them. */
 export function installStubs() {
+  // Settings default to on, since that is the state the rules are normally in. Individual tests
+  // flip one with setSetting to check what happens when it is off.
+  globalThis.__settings ??= new Map([["moduleEnabled", true]]);
+
   globalThis.game ??= {
     combat: null,
-    settings: { get: () => undefined },
+    settings: {
+      get: (scope, key) => globalThis.__settings.has(key)
+        ? globalThis.__settings.get(key)
+        : (key.endsWith("Enabled") ? true : undefined),
+      set: (scope, key, value) => { globalThis.__settings.set(key, value); }
+    },
     i18n: { localize: key => key, format: key => key }
   };
 
@@ -51,6 +60,20 @@ export function fakeEffect(data = {}) {
     flags,
     getFlag: (scope, key) => flags?.[scope]?.[key]
   };
+}
+
+/**
+ * Override one setting for the duration of a test. Returns a function that puts it back.
+ *
+ * @param {string} key
+ * @param {*} value
+ * @returns {Function}
+ */
+export function setSetting(key, value) {
+  const had = globalThis.__settings.has(key);
+  const previous = globalThis.__settings.get(key);
+  globalThis.__settings.set(key, value);
+  return () => { if (had) globalThis.__settings.set(key, previous); else globalThis.__settings.delete(key); };
 }
 
 /** Register a uuid so `fromUuidSync` can resolve it inside a test. */

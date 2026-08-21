@@ -34,7 +34,11 @@ Hooks.once("init", () => {
     scope: "world",
     config: true,
     type: Boolean,
-    default: true
+    default: true,
+
+    // Rules that apply documents have to hear about this, or turning the module off would leave
+    // everything it had applied in place with nothing left running to clean it up.
+    onChange: () => Hooks.callAll("trickyHomebrewRulesToggled")
   });
 
   runForEachRule("registerSettings");

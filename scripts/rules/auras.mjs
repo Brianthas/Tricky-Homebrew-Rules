@@ -176,7 +176,8 @@ export const auras = {
       scope: "world",
       config: true,
       type: Boolean,
-      default: true
+      default: true,
+      onChange: () => scheduleReconcile()
     });
 
     // Auras this world has been taught, keyed by item name. Not shown in the settings list: it is
@@ -228,6 +229,7 @@ export const auras = {
     Hooks.on("createCombat", scheduleReconcile);
 
     Hooks.on("drawToken", drawAuraRing);
+    Hooks.on("trickyHomebrewRulesToggled", () => scheduleReconcile());
     Hooks.on("renderTokenHUD", onRenderTokenHUD);
     Hooks.on("renderActiveEffectConfig", onRenderEffectConfig);
   },
@@ -388,7 +390,6 @@ async function onTokenMoved(doc) {
 async function reconcile() {
   if (reconciling) return;
   if (!game.users.activeGM?.isSelf) return;
-  if (!isRuleEnabled(RULE_ID)) return;
   if (!canvas?.ready || !canvas.scene) return;
 
   reconciling = true;
@@ -448,6 +449,10 @@ function ensureSourceIcons(sources) {
  * @returns {boolean}
  */
 export function auraIsLive(effect, config) {
+  // Asked here rather than at the top of the reconcile so that turning the rule off tears down
+  // instead of freezing. Bailing early left every applied copy in place and every ring drawn, so a
+  // paladin kept granting saves indefinitely with no way to clear it but by hand.
+  if (!isRuleEnabled(RULE_ID)) return false;
   if (!config?.enabled) return false;
   if (effect.disabled || effect.isSuppressed) return false;
   if (config.combatOnly && !game.combat?.started) return false;
