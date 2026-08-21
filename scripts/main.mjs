@@ -7,6 +7,7 @@ import { expireEffects } from "./rules/expire-effects.mjs";
 import { auras } from "./rules/auras.mjs";
 import { selfEffects } from "./rules/self-effects.mjs";
 import { effectsPanel } from "./rules/effects-panel.mjs";
+import { runSelfCheck } from "./lib/selfcheck.mjs";
 
 /**
  * Every house rule this module provides. Adding a rule means writing one file under `rules/` that
@@ -42,6 +43,11 @@ Hooks.once("init", () => {
 
 Hooks.once("ready", () => {
   if (!CONFIG.DND5E) return;
+
+  // Say so if Foundry or dnd5e has moved something these rules reach into, rather than letting a
+  // rule fail silently and turn up mid-session as "why didn't that work".
+  runSelfCheck();
+
   runForEachRule("onReady");
 });
 

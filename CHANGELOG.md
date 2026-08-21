@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- **A startup check reports when Foundry or dnd5e moves something these rules reach into.** Most of these rules work by reaching into somebody else's code, and when one of those moves in an update the rule stops working without saying anything, surfacing mid-session as "why didn't that apply". Seven APIs are confirmed on load and a warning names the affected rules if any are gone. Silent when all is well.
+- The competition between overlapping auras is now **testable and tested**: which of two paladins grants the bonus, ties broken the same way every time, stacking auras opting out, walls removing one aura and not the other. That logic was wrong once, granting both bonuses at once, and had no test because it reached straight for the canvas.
 - **Your own auras can be added to the known table.** The Aura dialog has a **Remember this aura** switch: tick it and Set Up Known Auras will offer the same settings on any other character with that feature. The built-in table only covers official content, so homebrew previously meant configuring it by hand on every character that had it.
 
 - Added a **test suite** covering the parts of the module that are ordinary logic: ring colours, effect naming, expiry, bonus formatting, aura liveness and light comparison. 39 tests, no Foundry required, run by CI on every push. Several of tonight's bugs came from two places deciding the same thing separately, which is exactly what a test pins down.

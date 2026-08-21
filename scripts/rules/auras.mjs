@@ -484,7 +484,7 @@ function collectSources(tokens) {
  * @param {object[]} tokens
  * @returns {Map<string, Set<string>>}  Token id to the set of source effect uuids.
  */
-function computeDesired(sources, tokens) {
+export function computeDesired(sources, tokens, reach = CANVAS_REACH) {
   const desired = new Map();
   const contested = new Map();
 
@@ -495,7 +495,7 @@ function computeDesired(sources, tokens) {
 
   for (const source of sources) {
     for (const token of tokens) {
-      if (!appliesTo(source, token)) continue;
+      if (!appliesTo(source, token, reach)) continue;
 
       // A stacking aura is unconditional. Everything else competes by name, because two paladins
       // both radiating Aura of Protection grant one bonus, not two.
@@ -527,7 +527,7 @@ function computeDesired(sources, tokens) {
  * @param {object} token
  * @returns {boolean}
  */
-function appliesTo(source, token) {
+export function appliesTo(source, token, reach = CANVAS_REACH) {
   const { config, radius } = source;
   const origin = source.token;
   const isSelf = token.id === origin.id;
@@ -541,18 +541,26 @@ function appliesTo(source, token) {
     if (product !== config.disposition) return false;
   }
 
-  if (tokenDistance(origin, token) > radius) return false;
-
-  if (config.respectWalls) {
-    const blocked = CONFIG.Canvas.polygonBackends.move.testCollision(origin.center, token.center, {
-      type: "move",
-      mode: "any"
-    });
-    if (blocked) return false;
-  }
+  if (reach.distance(origin, token) > radius) return false;
+  if (config.respectWalls && reach.blocked(origin, token)) return false;
 
   return true;
 }
+
+/**
+ * How reach is judged on a real canvas.
+ *
+ * Held apart from the rule that uses it so the competition between auras can be tested without one.
+ * Which aura wins when two overlap is the part a player notices being wrong, and it was wrong once:
+ * two paladins both granting their bonus at the same time. It needed to be testable.
+ */
+const CANVAS_REACH = {
+  distance: (from, to) => tokenDistance(from, to),
+  blocked: (from, to) => CONFIG.Canvas.polygonBackends.move.testCollision(from.center, to.center, {
+    type: "move",
+    mode: "any"
+  })
+};
 
 /**
  * Distance between two tokens, measured between the grid spaces they occupy.
@@ -820,7 +828,7 @@ function resolveStrength(effect, config, actor) {
  * @param {object} b
  * @returns {boolean}
  */
-function beats(a, b) {
+export function beats(a, b) {
   if (a.strength !== b.strength) return a.strength > b.strength;
   return a.effect.uuid < b.effect.uuid;
 }

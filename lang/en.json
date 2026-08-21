@@ -108,6 +108,7 @@
   "THR.Rules.Auras.Setup.Apply": "Apply",
   "THR.Rules.Auras.Setup.Done": "Configured {count} aura(s).",
   "THR.Rules.Auras.Setup.NoneFound": "No recognised auras found. Homebrew auras still need setting up from the Aura button on their effect.",
+  "THR.SelfCheck.Missing": "Tricky Homebrew Rules: this version of Foundry or dnd5e has moved something these rules rely on. Affected: {rules}. See the console for detail.",
   "THR.Groups.General": "General",
   "THR.Groups.criticalDice": "Critical Dice",
   "THR.Groups.maxHealing": "Max Healing",
