@@ -1,10 +1,10 @@
 import { test, describe } from "node:test";
 import assert from "node:assert/strict";
-import { installStubs, fakeEffect, setSetting } from "./stubs.mjs";
+import { installStubs, fakeEffect, setSetting, registerUuid } from "./stubs.mjs";
 
 installStubs();
 
-const { ringColour, toHex, lightAnimationOf, sameLight, auraIsLive } = await import("../scripts/rules/auras.mjs");
+const { ringColour, toHex, lightAnimationOf, sameLight, auraIsLive, auraSeedFor } = await import("../scripts/rules/auras.mjs");
 
 const ALLIES = 1;
 const ENEMIES = -1;
@@ -161,5 +161,118 @@ describe("switching the rule off", () => {
       restore();
     }
     assert.equal(auraIsLive(fakeEffect(), { enabled: true, combatOnly: false }), true);
+  });
+});
+
+describe("auraSeedFor", () => {
+  // The bug this covers: an aura's settings live in a flag on the effect document, and a spell's
+  // applied effect is rebuilt from scratch on every cast. Configuring the one on the sheet
+  // configured a document that was thrown away, so recasting produced a plain effect and it read as
+  // the settings not having saved. Permanent auras never showed it, because a class feature's
+  // effect sits on an item and is never recreated.
+
+  const remembered = (config = {}) => setSetting("aurasCustom", {
+    "conjure minor elementals": {
+      enabled: true, radius: "20", disposition: -1, applyToSelf: false,
+      style: "light:pulse", respectWalls: false, colour: "#3ba7ff"
+    },
+    ...config
+  });
+
+  test("a remembered aura is applied to a fresh copy of the same name", () => {
+    const restore = remembered();
+    try {
+      const seed = auraSeedFor(fakeEffect({ name: "Conjure Minor Elementals" }));
+      assert.equal(seed?.enabled, true);
+      assert.equal(seed.radius, "20");
+      assert.equal(seed.disposition, -1);
+    } finally {
+      restore();
+    }
+  });
+
+  test("every remembered setting comes back, not just radius and reach", () => {
+    // Remembering only three fields meant a recalled aura returned with a plain gold ring and walls
+    // back on, which is not the aura that was remembered.
+    const restore = remembered();
+    try {
+      const seed = auraSeedFor(fakeEffect({ name: "Conjure Minor Elementals" }));
+      assert.equal(seed.style, "light:pulse");
+      assert.equal(seed.respectWalls, false);
+      assert.equal(seed.colour, "#3ba7ff");
+    } finally {
+      restore();
+    }
+  });
+
+  test("defaults fill in whatever the table does not say", () => {
+    const seed = auraSeedFor(fakeEffect({ name: "Spirit Guardians" }));
+    assert.equal(seed.radius, "15");
+    assert.equal(seed.disposition, -1);
+    assert.equal(seed.stacks, false);
+    assert.equal(seed.style, "solid");
+  });
+
+  test("the name is matched case and whitespace insensitively", () => {
+    assert.ok(auraSeedFor(fakeEffect({ name: "  AURA OF LIFE " })));
+  });
+
+  test("an unknown effect is left alone", () => {
+    assert.equal(auraSeedFor(fakeEffect({ name: "Bless" })), null);
+    assert.equal(auraSeedFor(fakeEffect({ name: "" })), null);
+    assert.equal(auraSeedFor(null), null);
+  });
+
+  test("a config already stored wins, including one deliberately switched off", () => {
+    // Reseeding over a stored answer would turn an aura the GM had switched off back on every time
+    // the effect was recreated, with no way to keep it off.
+    const off = fakeEffect({
+      name: "Spirit Guardians",
+      flags: { "tricky-homebrew-rules": { aura: { enabled: false, radius: "15" } } }
+    });
+    assert.equal(auraSeedFor(off), null);
+  });
+
+  test("a copy this rule applied is never seeded into an aura of its own", () => {
+    // It carries its source's name, so seeding it would make every recipient radiate the aura.
+    const copy = fakeEffect({
+      name: "Spirit Guardians",
+      flags: { "tricky-homebrew-rules": { fromAura: "Actor.abc.ActiveEffect.def" } }
+    });
+    assert.equal(auraSeedFor(copy), null);
+  });
+
+  test("an enchantment is not an aura whatever it is called", () => {
+    assert.equal(auraSeedFor(fakeEffect({ name: "Spirit Guardians", type: "enchantment" })), null);
+  });
+
+  test("the source item's name is matched when the effect carries a flavour name", () => {
+    // dnd5e's 2024 content names spell effects for flavour rather than after the spell, and the
+    // Source Named Effects rule that renames them can be switched off, so the item name has to be
+    // reached independently.
+    registerUuid("Actor.a.Item.b", { documentName: "Item", name: "Spirit Guardians" });
+    const seed = auraSeedFor(fakeEffect({ name: "Spectral Wardens" }), "Actor.a.Item.b");
+    assert.equal(seed?.radius, "15");
+  });
+
+  test("a concentration origin is followed back to the spell", () => {
+    // dnd5e points an applied concentration effect's origin at the caster's concentration effect,
+    // not at the spell, so the item reference it carries has to be followed.
+    registerUuid("Actor.a.Item.spell", { documentName: "Item", name: "Aura of Purity" });
+    registerUuid("Actor.a.ActiveEffect.conc", {
+      documentName: "ActiveEffect",
+      getFlag: (scope, key) => (scope === "dnd5e" && key === "item") ? { uuid: "Actor.a.Item.spell" } : undefined
+    });
+    const seed = auraSeedFor(fakeEffect({ name: "Purified" }), "Actor.a.ActiveEffect.conc");
+    assert.equal(seed?.radius, "30");
+    assert.equal(seed.disposition, 1);
+  });
+
+  test("a scaling formula never reaches the stored config", () => {
+    // `scaling` is a table concept the radius has already been resolved from. Carrying it into the
+    // flag would let it override that radius on an actor who cannot resolve it.
+    const seed = auraSeedFor(fakeEffect({ name: "Aura of Protection" }));
+    assert.equal(seed.scaling, undefined);
+    assert.equal(seed.radius, "10");
   });
 });

@@ -350,6 +350,14 @@ Set one up with the **Aura** button on any effect's configuration sheet. Radius,
 
 If the effect is one the module recognises, the dialog pre-fills from the same table [Set Up Known Auras](#setting-up-official-auras-in-one-pass) uses, matching on the effect's name and then on the item it came from. It tells you when it has done so, because the table cannot know about level scaling: a paladin's aura widens to 30 feet at 18th level.
 
+### Spell auras survive being recast
+
+An aura's settings are stored on the effect they configure. A class feature's effect sits on the item and is never recreated, so that is durable. A spell's is not: dnd5e builds the applied effect fresh from the item's copy on every cast, so the one you configured is thrown away when the spell ends and the next cast produces a plain effect. That looked like the settings not having saved.
+
+Effects are now configured as they are created, from what this world knows about an aura of that name, so Spirit Guardians radiates from the moment it lands and keeps doing so on every recast. Nothing already configured is touched, including an aura deliberately switched off.
+
+Homebrew has to be taught once. Configuring an effect that came from a spell pre-ticks **Remember this aura** and says why, because there is nowhere else those settings can survive to the next cast.
+
 ### Only the strongest applies
 
 Two paladins radiating Aura of Protection grant one bonus, not two, matching 5e. The stronger wins, and walking out of the stronger one's range downgrades you to the weaker rather than dropping you to nothing.
@@ -412,7 +420,7 @@ The module settings have a **Set Up Known Auras** button. It finds auras that of
 
 Where a feature widens with level the table holds a formula rather than a number, so a paladin's aura goes from 10 feet to 30 at 18th level without anybody remembering to change it.
 
-Homebrew is not in that table, and cannot be. Tick **Remember this aura** when configuring one and this world will offer the same settings for that feature on every other character, keyed on the item's name.
+Homebrew is not in that table, and cannot be. Tick **Remember this aura** when configuring one and this world remembers everything you set, ring style and walls included, keyed on the item's name where there is one and on the effect's name otherwise. The review screen then offers it on every other character with that feature, and any new effect of that name is configured as it arrives.
 
 Radius and reach come from a built-in table rather than from the item, because the item does not record them. Scanning a real world for items shaped like "self, 30 foot radius" turns up three detection spells for every genuine aura, and Aura of Protection has no range, target or activity at all: its ten feet exists only in the description text. Inference would configure the wrong things and miss the obvious ones.
 

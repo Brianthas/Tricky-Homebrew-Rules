@@ -144,7 +144,7 @@ export function nameFromItem(effect, item) {
  * @param {string} origin
  * @returns {object|null}
  */
-function resolveSourceItem(origin) {
+export function resolveSourceItem(origin) {
   let doc = null;
   try {
     doc = fromUuidSync(origin, { strict: false });

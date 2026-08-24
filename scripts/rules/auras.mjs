@@ -3,6 +3,7 @@ import { registerLibWrapper } from "../lib/wrapper.mjs";
 import { isRuleEnabled, ruleEnabledKey } from "../lib/settings.mjs";
 import { allActors } from "../lib/actors.mjs";
 import { knownAuraFor } from "./known-auras.mjs";
+import { resolveSourceItem } from "./source-named-effects.mjs";
 
 const RULE_ID = "auras";
 
@@ -98,12 +99,17 @@ async function rememberAura(name, config) {
   const key = String(name ?? "").trim().toLowerCase();
   if (!key) return;
 
+  // Everything the dialog asked for, not just the three columns the review screen happens to show.
+  // Storing only radius, reach and self meant a remembered aura came back with a plain gold ring
+  // and no walls setting, which is not the aura that was remembered.
+  const remembered = { ...config, enabled: true };
+
+  // A table concept rather than a configuration field: `knownRadiusFor` has already turned it into
+  // this actor's radius, and carrying it further would let it override that on the next character.
+  delete remembered.scaling;
+
   const custom = { ...(game.settings.get(MODULE_ID, CUSTOM_KEY) ?? {}) };
-  custom[key] = {
-    radius: config.radius,
-    disposition: config.disposition,
-    applyToSelf: config.applyToSelf
-  };
+  custom[key] = remembered;
   await game.settings.set(MODULE_ID, CUSTOM_KEY, custom);
 }
 
@@ -221,6 +227,11 @@ export const auras = {
     for (const hook of ["createActiveEffect", "updateActiveEffect", "deleteActiveEffect"]) {
       Hooks.on(hook, onEffectChanged);
     }
+
+    // Configure a new effect as an aura before it is written, if this world already knows what that
+    // aura should be. See `onPreCreateEffect` for why a temporary spell effect cannot remember its
+    // own settings.
+    Hooks.on("preCreateActiveEffect", onPreCreateEffect);
     for (const hook of ["createWall", "updateWall", "deleteWall"]) Hooks.on(hook, scheduleReconcile);
     Hooks.on("updateActor", scheduleReconcile);
     Hooks.on("canvasReady", scheduleReconcile);
@@ -333,6 +344,88 @@ function scheduleReconcile() {
 function onEffectChanged(effect) {
   if (effect?.getFlag?.(MODULE_ID, FROM_AURA)) return;
   scheduleReconcile();
+}
+
+/**
+ * Configure a newly created effect as an aura, when this world already knows that aura.
+ *
+ * An aura's settings live in a flag on the effect document. That is durable for a class feature,
+ * whose effect sits on an item and is never recreated, and useless for a spell: dnd5e builds the
+ * applied effect fresh from the item's copy on every cast (`EffectApplicationElement`
+ * `#_applyEffectToActor` does `effect.toObject()` into `ActiveEffect.create`), so configuring the
+ * one on the sheet configures a document that is thrown away when the spell ends. Casting again
+ * produced a plain effect with no aura, which read as the settings not having saved.
+ *
+ * Seeding at creation fixes that at the source rather than asking anybody to reconfigure it. The
+ * flag is written into the creation data, so the effect is an aura from the moment it exists and
+ * there is no second update and no window where it is applied without radiating.
+ *
+ * @param {object} effect
+ * @param {object} data
+ */
+function onPreCreateEffect(effect, data) {
+  try {
+    if (!isRuleEnabled(RULE_ID)) return;
+
+    const config = auraSeedFor(effect, data?.origin ?? effect?.origin);
+    if (!config) return;
+
+    effect.updateSource({
+      [`flags.${MODULE_ID}.${AURA}`]: config,
+
+      // Matching the other two write paths: the source is a template, and its own icon would
+      // otherwise sit on the token beside the copy that actually carries the changes.
+      showIcon: CONST.ACTIVE_EFFECT_SHOW_ICON.NEVER
+    });
+  } catch (err) {
+    console.error(`${MODULE_ID} | Failed to configure a new effect as an aura.`, err);
+  }
+}
+
+/**
+ * The aura configuration a newly created effect should start with, or null to leave it alone.
+ *
+ * Matched on the effect's own name first, then on the item that produced it, which is the pair of
+ * names the Aura dialog already offers and the pair "Remember this aura" writes under. Either can be
+ * the one that matches: Source Named Effects may have already renamed this effect after its item, in
+ * which case both agree, and when that rule is off only the item name does.
+ *
+ * @param {object} effect
+ * @param {string} [origin]  The effect's origin uuid, taken from the creation data during preCreate.
+ * @returns {object|null}
+ */
+export function auraSeedFor(effect, origin) {
+  if (!effect) return null;
+
+  // Enchantments modify an item rather than mark an actor, so they are not auras whatever they are
+  // called. Skipped by the review screen for the same reason.
+  if (effect.type === "enchantment") return null;
+
+  // A copy this rule applied carries its source's name and would otherwise be seeded into an aura
+  // of its own, radiating from every recipient.
+  if (effect.getFlag?.(MODULE_ID, FROM_AURA)) return null;
+
+  // Already configured, including deliberately switched off. An answer that is already stored is
+  // never overwritten by the table's.
+  if (effect.getFlag?.(MODULE_ID, AURA)) return null;
+
+  const known = knownFor(effect.name) ?? knownFor(sourceItemNameFor(effect, origin));
+  if (!known) return null;
+
+  const config = { ...DEFAULTS, ...known, radius: knownRadiusFor(known, actorOf(effect)), enabled: true };
+  delete config.scaling;
+  return config;
+}
+
+/**
+ * The name of the item that produced an effect, or null.
+ * @param {object} effect
+ * @param {string} [origin]
+ * @returns {string|null}
+ */
+function sourceItemNameFor(effect, origin) {
+  if (effect?.parent?.documentName === "Item") return effect.parent.name ?? null;
+  return resolveSourceItem(origin ?? effect?.origin)?.name ?? null;
 }
 
 /**
@@ -1418,9 +1511,18 @@ async function promptAuraConfig(effect) {
   const checked = value => (value ? " checked" : "");
   const selected = (a, b) => (a === b ? " selected" : "");
 
-  const notice = known
-    ? `<p class="notification info">${game.i18n.localize("THR.Rules.Auras.Config.Seeded")}</p>`
-    : "";
+  // An effect sitting on the actor rather than on one of its items is a copy something made when the
+  // spell or ability was used, and it is rebuilt from scratch the next time. Settings written to it
+  // die with it, so this world's known-aura table is the only place they can survive to the next
+  // cast, and "Remember this aura" starts ticked rather than being an option nobody knew mattered.
+  const transient = effect?.parent?.documentName === "Actor";
+
+  const notice = [
+    known ? game.i18n.localize("THR.Rules.Auras.Config.Seeded") : null,
+    transient ? game.i18n.localize("THR.Rules.Auras.Config.Transient") : null
+  ].filter(Boolean)
+    .map(text => `<p class="notification info">${text}</p>`)
+    .join("");
 
   const content = `${notice}
     <div class="form-group">
@@ -1504,7 +1606,7 @@ async function promptAuraConfig(effect) {
     </div>
     <div class="form-group">
       <label>${L("Remember")}</label>
-      <div class="form-fields"><input type="checkbox" name="remember"></div>
+      <div class="form-fields"><input type="checkbox" name="remember"${checked(transient)}></div>
       <p class="hint">${L("RememberHint")}</p>
     </div>
     <div class="form-group">
@@ -1530,7 +1632,9 @@ async function promptAuraConfig(effect) {
       await effect.update({ showIcon: CONST.ACTIVE_EFFECT_SHOW_ICON.NEVER });
     }
 
-    await effect.setFlag(MODULE_ID, AURA, {
+    // Built once and used for both writes. Remembering a different, smaller object than the one
+    // saved is what made a recalled aura come back with settings nobody had chosen.
+    const config = {
       enabled: !!result.enabled,
       radius: String(result.radius ?? "").trim() || "0",
       disposition: Number(result.disposition) || 0,
@@ -1545,18 +1649,19 @@ async function promptAuraConfig(effect) {
         : RING_STYLE_DEFAULT,
       coloration: Number(result.coloration) || 1,
       strength: String(result.strength ?? "").trim()
-    });
-    // Remembered against the item that grants it, since that is the name the bulk setup matches on
-    // when it goes looking on somebody else's sheet.
+    };
+
+    await effect.setFlag(MODULE_ID, AURA, config);
+
+    // Remembered against the item that grants it where there is one, since that is the name the
+    // review screen matches on when it goes looking on somebody else's sheet. A spell's applied
+    // effect has no item to name, so it is remembered under its own name, which is the name the
+    // next cast's copy will arrive with.
     if (result.remember) {
       const item = effect.parent?.documentName === "Item" ? effect.parent : null;
-      await rememberAura(item?.name ?? effect.name, {
-        radius: String(result.radius ?? "").trim() || "0",
-        disposition: Number(result.disposition) || 0,
-        applyToSelf: !!result.applyToSelf
-      });
-      ui.notifications?.info(game.i18n.format("THR.Rules.Auras.Config.Remembered",
-        { name: item?.name ?? effect.name }));
+      const name = item?.name ?? effect.name;
+      await rememberAura(name, config);
+      ui.notifications?.info(game.i18n.format("THR.Rules.Auras.Config.Remembered", { name }));
     }
 
     scheduleReconcile();
@@ -1671,17 +1776,19 @@ async function promptKnownAuraSetup() {
     if (!result[`pick.${i}`]) continue;
 
     try {
-      await entry.effect.update({ showIcon: CONST.ACTIVE_EFFECT_SHOW_ICON.NEVER });
-      await entry.effect.setFlag(MODULE_ID, AURA, {
-        enabled: true,
+      // Spread over the defaults rather than listing fields. A remembered aura carries everything
+      // that was configured on it, ring style and walls included, and listing the fields here meant
+      // the review screen quietly replaced those with the defaults.
+      const config = {
+        ...DEFAULTS,
+        ...entry.known,
         radius: String(result[`radius.${i}`] ?? entry.radius).trim() || String(entry.radius),
-        disposition: entry.known.disposition,
-        applyToSelf: entry.known.applyToSelf,
-        respectWalls: true,
-        combatOnly: false,
-        stacks: false,
-        strength: ""
-      });
+        enabled: true
+      };
+      delete config.scaling;
+
+      await entry.effect.update({ showIcon: CONST.ACTIVE_EFFECT_SHOW_ICON.NEVER });
+      await entry.effect.setFlag(MODULE_ID, AURA, config);
       configured += 1;
     } catch (err) {
       console.error(`${MODULE_ID} | Could not configure "${entry.item}" on "${entry.actor}".`, err);

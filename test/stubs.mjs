@@ -57,6 +57,7 @@ export function fakeEffect(data = {}) {
     duration: data.duration ?? {},
     type: data.type ?? "base",
     parent: data.parent ?? null,
+    origin: data.origin ?? null,
     flags,
     getFlag: (scope, key) => flags?.[scope]?.[key]
   };

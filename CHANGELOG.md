@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.16.0
+
+- **A spell's aura now comes back when the spell is recast.** An aura's settings live in a flag on the effect they configure, which is durable for a class feature, whose effect sits on the item and is never recreated, and useless for a spell: dnd5e builds the applied effect fresh from the item's copy on every cast, so the effect you configured is thrown away when the spell ends and the next cast lands a plain one. Configuring Conjure Minor Elementals, letting it drop and casting it again produced no aura at all, which read as the settings not having saved. Effects are now configured as they are created, from what this world knows about an aura of that name, so a known or remembered aura is live from the moment the effect exists. An aura that is already configured is never overwritten, including one deliberately switched off.
+- The name is matched against the effect and against the item that produced it, following a concentration effect back to the spell the way the effect naming rule does, so a 2024 spell whose effect is called something flavourful is still recognised.
+- **Configuring an effect that came from a spell pre-ticks Remember this aura**, and says why. That effect is a copy with no durable home, so the world's known-aura table is the only place its settings can survive to the next cast, and leaving it as an unticked box nobody had reason to notice is what made the original problem look like a bug.
+- **Remember this aura now remembers the whole aura.** It stored only radius, reach and whether it affects its own token, so a remembered aura came back with a plain gold ring, walls back on and any strength override gone. Set Up Known Auras applies the stored settings the same way rather than rebuilding three of them from defaults.
+
 ## 0.15.2
 
 - **Dialogs taller than the window now scroll instead of hiding their top half.** The Aura settings need around 940 pixels of window height, which most screens do not have once the browser's own chrome is out of the way. Foundry caps a dialog at the height of the window and clips whatever does not fit rather than scrolling it, so the rows above the cut could not be read, reached or corrected, and there was no way to fill the settings in and save them. The Aura settings, the per-aura on and off list, Set Up Known Auras and the Roll to Bonus dialog now cap their body and scroll it, which changes nothing on a screen where they already fitted.
