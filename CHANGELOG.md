@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.15.2
+
+- **Dialogs taller than the window now scroll instead of hiding their top half.** The Aura settings need around 940 pixels of window height, which most screens do not have once the browser's own chrome is out of the way. Foundry caps a dialog at the height of the window and clips whatever does not fit rather than scrolling it, so the rows above the cut could not be read, reached or corrected, and there was no way to fill the settings in and save them. The Aura settings, the per-aura on and off list, Set Up Known Auras and the Roll to Bonus dialog now cap their body and scroll it, which changes nothing on a screen where they already fitted.
+
 ## 0.15.1
 
 - **Switching the Auras rule off now actually turns the auras off.** It stopped updating them but left every applied copy in place and every ring drawn, so a paladin kept granting saves with the rule disabled and no way to clear it but by hand. A borrowed token light was never handed back either. Whether the rule is on is now part of the single question of whether an aura is live, so turning it off tears down and turning it back on restores.

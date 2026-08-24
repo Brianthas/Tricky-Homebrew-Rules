@@ -237,3 +237,29 @@
 #tricky-effects-panel .tricky-effect-remove:hover {
   background: #b91c1c;
 }
+
+/* -------------------------------------------- */
+/*  Scrolling dialogs                           */
+/* -------------------------------------------- */
+
+/* A DialogV2 is sized to its content - `.application.dialog { height: auto }` in foundry2.css - but
+   the browser caps the `<dialog>` element at about the window height (measured: max-height 1291px
+   in a 1369px window), and core gives every window `.window-content { overflow: hidden }`. A form
+   taller than that cap is simply clipped, with no scrollbar anywhere to reach the rest. Measured on
+   a 30 row test dialog in 14.365: 2189px of content in a 1253px window, the form starting at
+   y = -932, so a third of its rows sat above the top edge and could be neither read nor edited.
+
+   Capping the dialog body and scrolling it keeps every row reachable and the footer buttons on
+   screen however long the content gets. The allowance covers the window header, the content padding
+   and the button row; `.dialog-content` already carries `.standard-form`, so its own layout is
+   untouched. Applied via the SCROLLING_DIALOG class (scripts/lib/constants.mjs), and inert on a
+   dialog that already fits. */
+
+.application.dialog.tricky-scrolling-dialog .dialog-content {
+  --scroll-margin: 0.75rem;
+  max-height: calc(100vh - 12rem);
+  margin-right: calc(-1 * var(--scroll-margin));
+  padding-right: var(--scroll-margin);
+  overflow: hidden auto;
+  scrollbar-gutter: stable;
+}

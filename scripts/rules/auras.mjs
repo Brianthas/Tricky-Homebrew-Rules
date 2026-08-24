@@ -1,4 +1,4 @@
-import { MODULE_ID } from "../lib/constants.mjs";
+import { MODULE_ID, SCROLLING_DIALOG } from "../lib/constants.mjs";
 import { registerLibWrapper } from "../lib/wrapper.mjs";
 import { isRuleEnabled, ruleEnabledKey } from "../lib/settings.mjs";
 import { allActors } from "../lib/actors.mjs";
@@ -1191,6 +1191,7 @@ async function promptAuraToggles(sources) {
 
   const result = await foundry.applications.api.DialogV2.input({
     window: { title: game.i18n.localize("THR.Rules.Auras.HUD.ChooseTitle") },
+    classes: [SCROLLING_DIALOG],
     content: rows,
     ok: { label: game.i18n.localize("THR.Rules.Auras.Config.Save"), icon: "fa-solid fa-check" }
   });
@@ -1515,6 +1516,7 @@ async function promptAuraConfig(effect) {
 
   const result = await foundry.applications.api.DialogV2.input({
     window: { title: game.i18n.format("THR.Rules.Auras.Config.Title", { name: effect.name }) },
+    classes: [SCROLLING_DIALOG],
     content,
     ok: { label: game.i18n.localize("THR.Rules.Auras.Config.Save"), icon: "fa-solid fa-check" },
     render: (event, dialog) => bindColourControls(dialog)
@@ -1654,6 +1656,7 @@ async function promptKnownAuraSetup() {
 
   const result = await foundry.applications.api.DialogV2.input({
     window: { title: label("Name") },
+    classes: [SCROLLING_DIALOG],
     position: { width: 620 },
     content,
     ok: { label: label("Apply"), icon: "fa-solid fa-check" }

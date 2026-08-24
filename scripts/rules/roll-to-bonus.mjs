@@ -1,4 +1,4 @@
-import { MODULE_ID } from "../lib/constants.mjs";
+import { MODULE_ID, SCROLLING_DIALOG } from "../lib/constants.mjs";
 import { isRuleEnabled, ruleEnabledKey } from "../lib/settings.mjs";
 
 const RULE_ID = "rollToBonus";
@@ -285,6 +285,7 @@ async function promptApplyBonus(message) {
 
   const result = await foundry.applications.api.DialogV2.input({
     window: { title: game.i18n.localize("THR.Rules.RollToBonus.DialogTitle") },
+    classes: [SCROLLING_DIALOG],
     content,
     ok: { label: game.i18n.localize("THR.Rules.RollToBonus.Apply"), icon: "fa-solid fa-check" }
   });
