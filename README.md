@@ -310,20 +310,30 @@ Both are per person rather than per world, since this is about one player's scre
 
 A spell whose range is **Self** applies its effect to the caster the moment it is cast, with no Apply Effect button to press.
 
-dnd5e posts a card and waits to be told who the effect goes on. For Shield or Mage Armor there is nobody else it could be, so the button asks a question with exactly one answer. Shield is the worst case, since it is cast in the middle of somebody else's attack roll.
+dnd5e posts a card and waits to be told who the effect goes on. For Shield or Blur there is nobody else it could be, so the button asks a question with exactly one answer. Shield is the worst case, since it is cast in the middle of somebody else's attack roll.
 
 ### What counts as self
 
-The **range** is the test, because that is the field that actually says so:
+A range of **Self** is where a self spell says so, but it is not enough on its own: it is also what dnd5e writes on a feature that has no range of its own, which is why Stunning Strike reads as Self. Four questions have to agree before an effect is applied without asking.
 
-| Spell | Range | Applied automatically |
+| Question | Field | Self if |
 | --- | --- | --- |
-| Shield | Self | yes |
+| Where does it reach? | `range.units` | Self, not a distance in feet |
+| How does it resolve? | activity type | Not an attack, save, check or damage roll, all of which land on somebody else |
+| Who does it name? | `target.affects.type` | Self, or nothing at all |
+| What area does it cover? | `target.template.type` | None, or an emanation |
+
+| Spell or feature | Reads as | Applied automatically |
+| --- | --- | --- |
+| Shield | Self, affects Self | yes |
+| Blur, Mirror Image | Self, affects nobody in particular | yes |
 | Aura of Life | Self, 30 ft emanation | yes |
 | Bless | 30 ft, affects creatures | no |
-| Shield of Faith | 15 ft, affects a creature | no |
+| Stunning Strike | Self, but a save against a creature | no |
+| Burning Hands | Self, 15 ft cone | no |
+| A monster's Grab | Self, but a contested check | no |
 
-Anything that targets other creatures keeps its button and its choice of target.
+Anything that reaches another creature keeps its button and its choice of target.
 
 Emanations are centred on the caster but reach other creatures. The Auras rule spreads them from the caster's own copy, so including them is the default. A setting narrows it to spells that affect nobody else at all, for a game not using auras.
 

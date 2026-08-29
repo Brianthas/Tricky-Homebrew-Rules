@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.16.1
+
+- **Stunning Strike no longer stuns the monk.** Self Effects treated a range of Self as proof that the caster was the only possible recipient, and a range of Self is also what dnd5e writes on a feature that has no range of its own. Stunning Strike is a saving throw against a creature you just hit, with a range of Self, so its Stunned and Slowed effects were landing on the monk who used it. Three more questions are now asked before anything is applied: the activity must not resolve against another creature (no attack, save, check or damage roll), it must not name a target type other than Self, and any area it covers must be an emanation. In dnd5e 5.3.3's own content that is the difference between 70-odd wrong applications and none, covering every poison, most monster grapples, the 2024 smite spells and the breath weapons.
+- **A cone or a line centred on the caster no longer counts as an emanation.** Burning Hands, Cone of Cold, Fear and every dragon's breath have a range of Self and an area, and the wider setting was reading all of them as reaching the caster. Only an emanation contains the creature it radiates from.
+- Beneficial self effects are untouched: Shield, Blur, Mirror Image, Rage, potions, Aura of Life and the Detect spells all still apply themselves. The one deliberate loss is the 2014 Fire Shield, whose effects hang off a damage activity; it was applying both the warm and the chill shield at once, which is one more than the spell grants.
+
 ## 0.16.0
 
 - **A spell's aura now comes back when the spell is recast.** An aura's settings live in a flag on the effect they configure, which is durable for a class feature, whose effect sits on the item and is never recreated, and useless for a spell: dnd5e builds the applied effect fresh from the item's copy on every cast, so the effect you configured is thrown away when the spell ends and the next cast lands a plain one. Configuring Conjure Minor Elementals, letting it drop and casting it again produced no aura at all, which read as the settings not having saved. Effects are now configured as they are created, from what this world knows about an aura of that name, so a known or remembered aura is live from the moment the effect exists. An aura that is already configured is never overwritten, including one deliberately switched off.

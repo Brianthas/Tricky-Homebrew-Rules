@@ -6,12 +6,30 @@ const SCOPE_KEY = `${RULE_ID}Scope`;
 
 /** Which self-range spells get their effect applied without being asked. */
 const SCOPE = {
-  /** Only spells that target nobody but the caster, such as Shield or Mage Armor. */
+  /** Only spells that target nobody but the caster, such as Shield or Blur. */
   CASTER_ONLY: "casterOnly",
 
   /** Also spells centred on the caster that radiate, such as Aura of Life. */
   INCLUDING_EMANATIONS: "emanations"
 };
+
+/**
+ * Activity types that resolve against a creature other than the one using them, whatever their
+ * range says. An attack rolls against another creature's AC, a save asks another creature for a
+ * saving throw, a check contests another creature's check, and damage is dealt to somebody.
+ *
+ * Stunning Strike is why this list exists: it is a `save` activity whose range is Self, because the
+ * feature has no range of its own and rides an attack that already found its target. Its Stunned
+ * and Slowed effects belong on that target, not on the monk.
+ */
+const RESOLVES_AGAINST_ANOTHER = new Set(["attack", "check", "damage", "save"]);
+
+/**
+ * dnd5e's area type for an emanation, which it labels `DND5E.TARGET.Type.Emanation.Label`. It is
+ * the only self-centred area that contains its own origin: a cone, line or cube with a range of
+ * Self starts at the caster and points away from them.
+ */
+const EMANATION = "radius";
 
 /* -------------------------------------------- */
 /*  Rule Definition                             */
@@ -25,9 +43,11 @@ const SCOPE = {
  * one possible answer. Shield in particular is cast in the middle of someone else's attack, where
  * the extra clicks are worst.
  *
- * Range is the test, because it is the field that actually says so. Shield reports `range.units` of
- * "self" with `affects.type` of "self", while Bless and Shield of Faith report a range in feet and
- * affect a creature, so they keep their button and their choice of target.
+ * A range of Self is necessary but nowhere near sufficient. It is also what dnd5e writes on a
+ * feature that has no range of its own, so Stunning Strike, every poison and most monster grapples
+ * report `range.units` of "self" while their effects belong on somebody else entirely. Three more
+ * questions separate them: the activity must not resolve against another creature, it must not name
+ * a target type other than Self, and any area it covers must be an emanation rather than a cone.
  *
  * The application itself mirrors dnd5e's own `EffectApplicationElement#_applyEffectToActor` rather
  * than inventing a second way to do it: the same `dependentOn`, `scaling` and `spellLevel` flags,
@@ -111,18 +131,35 @@ async function onUsageMessage(activity, card) {
 /**
  * Does this activity have the caster as its only possible recipient?
  *
+ * Exported for the tests: this is the whole rule, and every bug it has had was here.
+ *
  * @param {object} activity
  * @returns {boolean}
  */
-function appliesToCasterOnly(activity) {
+export function appliesToCasterOnly(activity) {
+  // Range says where the activity reaches. Anything with a range in feet reaches somebody else.
   if (activity?.range?.units !== "self") return false;
 
-  const scope = game.settings.get(MODULE_ID, SCOPE_KEY);
-  if (scope !== SCOPE.CASTER_ONLY) return true;
+  // ...but a range of Self is also the default for a feature that never had one, so it cannot be
+  // trusted alone. How the activity resolves is the more honest answer.
+  if (RESOLVES_AGAINST_ANOTHER.has(activity?.type)) return false;
 
-  // An emanation is centred on the caster but reaches other creatures, so under the narrow setting
-  // it keeps its button.
-  return !activity?.target?.template?.type;
+  // A named target type other than Self says somebody else receives this. Shield says "self",
+  // Blur and Mirror Image say nothing at all and both mean the caster, while Stunning Strike says
+  // "creature" and a monster's Fear Aura says "enemy".
+  const affects = activity?.target?.affects?.type ?? "";
+  if (affects && (affects !== "self")) return false;
+
+  // No area at all: the caster is the only one left.
+  const template = activity?.target?.template?.type ?? "";
+  if (!template) return true;
+
+  // Burning Hands is range Self too, and does not burn the wizard. Only an emanation includes the
+  // creature it radiates from.
+  if (template !== EMANATION) return false;
+
+  // An emanation reaches other creatures as well, so under the narrow setting it keeps its button.
+  return game.settings.get(MODULE_ID, SCOPE_KEY) !== SCOPE.CASTER_ONLY;
 }
 
 /**
