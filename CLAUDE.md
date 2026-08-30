@@ -49,3 +49,16 @@ feet away, which is precisely where the spell matters and nowhere near where any
 A `module.json` with `manifest`/`download` pointing at `releases/latest/download/...` makes Foundry
 404 on every world load until a release actually exists. Either omit both keys until the first
 release is published, or say up front that the red error is expected.
+
+## Editor type checking
+
+`jsconfig.json` points at `fvtt-types` (a dev-only devDependency, aliased to
+`@league-of-foundry-developers/foundry-vtt-types`), so `game`, `CONFIG` and `Hooks` resolve in the
+editor and a mistyped document key is flagged instead of failing silently in Foundry.
+
+`checkJs` is off. Turning it on across `scripts/`, `test/` and `tools/` reports 247 errors, most of
+them in `scripts/rules/auras.mjs` and `scripts/rules/roll-to-bonus.mjs`. Opt a single file in with
+`// @ts-check` on line 1.
+
+`package.json` exists for this dependency only. The module version stays in `module.json`, and CI
+does not run npm.

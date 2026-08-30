@@ -1,0 +1,18 @@
+{
+  "compilerOptions": {
+    "target": "esnext",
+    "module": "esnext",
+    "moduleResolution": "bundler",
+    "lib": ["esnext", "dom", "dom.iterable"],
+    "types": ["fvtt-types"],
+
+    "checkJs": false,
+    "strictNullChecks": true,
+    "strictFunctionTypes": true,
+    "noImplicitAny": false,
+
+    "maxNodeModuleJsDepth": 0
+  },
+  "include": ["scripts/**/*.mjs", "test/**/*.mjs", "tools/**/*.mjs"],
+  "exclude": ["node_modules", "styles", "lang"]
+}

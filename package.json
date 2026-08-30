@@ -1,0 +1,9 @@
+{
+  "name": "tricky-homebrew-rules",
+  "private": true,
+  "type": "module",
+  "description": "Dev tooling only. The module version lives in module.json.",
+  "devDependencies": {
+    "fvtt-types": "npm:@league-of-foundry-developers/foundry-vtt-types@^13"
+  }
+}
