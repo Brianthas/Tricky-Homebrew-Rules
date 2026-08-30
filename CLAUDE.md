@@ -62,3 +62,8 @@ them in `scripts/rules/auras.mjs` and `scripts/rules/roll-to-bonus.mjs`. Opt a s
 
 `package.json` exists for this dependency only. The module version stays in `module.json`, and CI
 does not run npm.
+
+`eslint.config.mjs` is flat config on eslint 10. `no-undef` is off because fvtt-types covers the
+globals. `no-useless-assignment` is off because the `let x = null; try { x = ... } catch { return
+null; }` idiom in `expire-effects.mjs` and `source-named-effects.mjs` reads as a dead store to it.
+`npm run lint` is clean; `npm test` runs the same 84 tests CI does.

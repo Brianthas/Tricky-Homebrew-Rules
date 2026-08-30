@@ -4,6 +4,12 @@
   "type": "module",
   "description": "Dev tooling only. The module version lives in module.json.",
   "devDependencies": {
+    "@eslint/js": "^10.0.1",
+    "eslint": "^10.9.1",
     "fvtt-types": "npm:@league-of-foundry-developers/foundry-vtt-types@^13"
+  },
+  "scripts": {
+    "lint": "eslint .",
+    "test": "node --test test/*.test.mjs"
   }
 }
