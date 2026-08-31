@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.17.1
+
+- **Difficult terrain no longer slows creatures flying over it.** `createTokenEmanation` builds a sphere, reaching the full radius above and below the emitter, so 0.17.0's region charged anything inside that volume: through a 15 foot emanation a hostile flying at 10 feet paid 30 movement for a 15 foot move, and only cleared it above 20 feet. Difficult terrain is a property of the ground, and Conjure Minor Elementals says "the ground in the Emanation". The region now occupies the emitter's own elevation band and nothing above it, and Foundry shifts that band with the emitter, so a caster on a ledge makes the ledge difficult rather than the floor below. A creature hovering at ground level is still charged: it occupies the same space as one standing there. Regions written by 0.17.0 are rebuilt on the next pass.
+- Walking, burrowing, climbing and swimming are all charged, and teleporting is not, which is dnd5e's own handling rather than anything decided here.
+
 ## 0.17.0
 
 - **An aura can now make the ground inside it difficult terrain.** Tick **Difficult terrain** in the Aura dialog and the area costs the extra movement, for whoever the aura's Applies to setting names. This cannot be done with an active effect: what a square costs to enter is decided by region behaviors, which read the token and the region and never look at the actor's effects. The rule creates a scene Region instead, an emanation attached to the emitting token, so Foundry moves it inside the token's own update rather than the module writing a new position on every step. It is created when the aura goes live and deleted when the aura stops.

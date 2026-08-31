@@ -5,7 +5,7 @@ import { installStubs, fakeEffect, setSetting, registerUuid } from "./stubs.mjs"
 installStubs();
 
 const {
-  ringColour, toHex, lightAnimationOf, sameLight, auraIsLive, auraSeedFor, ignoredDispositionsFor
+  ringColour, toHex, lightAnimationOf, sameLight, auraIsLive, auraSeedFor, ignoredDispositionsFor, groundBandFor
 } = await import("../scripts/rules/auras.mjs");
 
 const ALLIES = 1;
@@ -343,5 +343,35 @@ describe("ignoredDispositionsFor", () => {
       sorted(ignoredDispositionsFor({ disposition: ENEMIES }, NEUTRAL)),
       [HOSTILE, NEUTRAL, FRIENDLY]
     );
+  });
+});
+
+describe("groundBandFor", () => {
+  // Difficult terrain is a property of the ground. createTokenEmanation builds a sphere, so 0.17.0
+  // charged a flying creature anywhere inside the radius: a hostile flying at 10 feet paid 30 for a
+  // 15 foot move through a 15 foot emanation and only cleared it above 20.
+
+  test("a medium creature on the floor occupies one square of height", () => {
+    assert.deepEqual(groundBandFor({ elevation: 0, depth: 1 }, 5), { bottom: 0, top: 5 });
+  });
+
+  test("the band sits at the emitter's own elevation, not at the floor", () => {
+    // A caster on a ledge makes the ledge difficult, not the ground twenty feet below it.
+    assert.deepEqual(groundBandFor({ elevation: 20, depth: 1 }, 5), { bottom: 20, top: 25 });
+  });
+
+  test("a taller creature occupies a taller band", () => {
+    assert.deepEqual(groundBandFor({ elevation: 0, depth: 2 }, 5), { bottom: 0, top: 10 });
+  });
+
+  test("a scene using metres is measured in metres", () => {
+    assert.deepEqual(groundBandFor({ elevation: 0, depth: 1 }, 1.5), { bottom: 0, top: 1.5 });
+  });
+
+  test("a missing depth or distance falls back rather than collapsing the band", () => {
+    // A zero-height band contains nothing, so the terrain would silently apply to nobody.
+    assert.deepEqual(groundBandFor({ elevation: 0 }, 5), { bottom: 0, top: 5 });
+    assert.deepEqual(groundBandFor({ elevation: 0, depth: 0 }, 0), { bottom: 0, top: 5 });
+    assert.deepEqual(groundBandFor(null, 5), { bottom: 0, top: 5 });
   });
 });

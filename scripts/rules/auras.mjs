@@ -1254,11 +1254,16 @@ async function ensureTerrainRegion(uuid, source, existing) {
     // stops following whoever it was drawn around.
     const sameToken = existing.attachment?.token?.id === token.id;
 
-    if (sameShape && sameSide && sameToken) return;
+    // 0.17.0 left the sphere `createTokenEmanation` builds, so a region written by it reaches the
+    // full radius overhead and charges flying creatures. Rebuilt rather than left alone.
+    const band = groundBandFor(token, scene.grid.distance);
+    const onGround = (existing.elevation?.bottom === band.bottom) && (existing.elevation?.top === band.top);
+
+    if (sameShape && sameSide && sameToken && onGround) return;
     await existing.delete();
   }
 
-  await CONFIG.Region.documentClass.createTokenEmanation(token, source.radius, {
+  const region = await CONFIG.Region.documentClass.createTokenEmanation(token, source.radius, {
     name: source.effect.name,
 
     // Shown only to someone working on the Regions layer. The aura already draws its own ring, and a
@@ -1275,6 +1280,34 @@ async function ensureTerrainRegion(uuid, source, existing) {
     // and the drawn circle is what anybody at the table is actually looking at.
     gridBased: false
   });
+
+  // `createTokenEmanation` writes its own elevation last, so this cannot be passed in with the rest.
+  await region?.update({ elevation: groundBandFor(token, scene.grid.distance) });
+}
+
+/**
+ * The elevation band a terrain region occupies: the emitter's own, and nothing above it.
+ *
+ * Difficult terrain is a property of the ground, not of the air over it. `createTokenEmanation`
+ * builds a sphere, reaching the full radius above and below the token, which charged a flying
+ * creature anywhere inside it: measured against a 15 foot emanation, a hostile flying at 10 feet
+ * paid 30 for a 15 foot move and only cleared it above 20 feet. Conjure Minor Elementals says "the
+ * ground in the Emanation", and every difficult terrain in 5e reads the same way.
+ *
+ * The band is the emitter's own occupied space, so a caster on a ledge makes the ledge difficult
+ * rather than the floor below it. Foundry shifts the band with the emitter when it changes elevation
+ * (`TokenDocument#computeAttachedRegionUpdates`), so this survives the caster flying or climbing.
+ *
+ * A creature hovering at ground level is still charged. It occupies the same band as one standing
+ * there, and there is nothing in the document to tell the two apart.
+ *
+ * @param {object} token     The emitting token document.
+ * @param {number} distance  The scene's grid distance, in feet per square.
+ * @returns {{bottom: number, top: number}}
+ */
+export function groundBandFor(token, distance) {
+  const bottom = token?.elevation ?? 0;
+  return { bottom, top: bottom + ((token?.depth || 1) * (distance || 5)) };
 }
 
 /**

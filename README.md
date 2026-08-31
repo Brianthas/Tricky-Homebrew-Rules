@@ -414,6 +414,8 @@ It is done with a scene **Region** rather than an active effect, because that is
 
 Regions are marked magical, so a creature that ignores magical difficult terrain ignores this. The region is only visible on the Regions layer; the aura's own ring is what you see on the map.
 
+Difficult terrain is a property of the ground, so the region occupies the emitter's own elevation band and nothing above it. A creature flying over the area is not slowed; one hovering at ground level is, since it occupies the same space as a creature standing there. A caster on a ledge makes the ledge difficult rather than the floor below, and the band follows them if they change elevation.
+
 Three things it does not do:
 
 | | |
