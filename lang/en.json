@@ -84,6 +84,8 @@
   "THR.Rules.Auras.Config.Enemies": "Tokens on the opposing side",
   "THR.Rules.Auras.Config.ApplyToSelf": "Also affects its own token",
   "THR.Rules.Auras.Config.RespectWalls": "Blocked by walls",
+  "THR.Rules.Auras.Config.DifficultTerrain": "Difficult terrain",
+  "THR.Rules.Auras.Config.DifficultTerrainHint": "Makes the ground inside the aura difficult terrain for whoever the Applies to setting names. Costs the same movement as any other difficult terrain, and a creature that ignores magical difficult terrain ignores this. Uses a scene Region attached to the token, so it follows the emitter and is removed when the aura ends. Walls are not taken into account: the region is the full circle even where Respect walls stops the effect being applied.",
   "THR.Rules.Auras.Config.CombatOnly": "Only during combat",
   "THR.Rules.Auras.Config.Stacks": "Stacks with the same aura",
   "THR.Rules.Auras.Config.StacksHint": "Off by default, matching 5e: two paladins radiating the same aura grant one bonus, the stronger of the two. Turn on for homebrew meant to add up.",

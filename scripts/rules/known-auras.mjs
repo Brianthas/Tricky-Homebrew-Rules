@@ -40,6 +40,13 @@ export const KNOWN_AURAS = {
 
   // Hostile emanations
   "spirit guardians": { radius: 15, disposition: -1, applyToSelf: false },
+
+  // The 2024 spell, whose emanation does two things: the extra 2d8 applies to anything you hit
+  // inside it, and the ground in it is Difficult Terrain for your enemies. Only the second half is
+  // automated. The damage is conditional on the target being inside at the moment you hit, which no
+  // active effect change can express, so the ring is there to answer "does the 2d8 apply" by eye and
+  // the item's own Bonus Attack Damage activity rolls it.
+  "conjure minor elementals": { radius: 15, disposition: -1, applyToSelf: false, difficultTerrain: true },
   "aura of hostility": { radius: 10, disposition: -1, applyToSelf: false },
 
   // Other emanating buffs

@@ -4,7 +4,9 @@ import { installStubs, fakeEffect, setSetting, registerUuid } from "./stubs.mjs"
 
 installStubs();
 
-const { ringColour, toHex, lightAnimationOf, sameLight, auraIsLive, auraSeedFor } = await import("../scripts/rules/auras.mjs");
+const {
+  ringColour, toHex, lightAnimationOf, sameLight, auraIsLive, auraSeedFor, ignoredDispositionsFor
+} = await import("../scripts/rules/auras.mjs");
 
 const ALLIES = 1;
 const ENEMIES = -1;
@@ -223,6 +225,24 @@ describe("auraSeedFor", () => {
     assert.equal(auraSeedFor(null), null);
   });
 
+  test("a concentration marker is never seeded, however its origin resolves", () => {
+    // dnd5e names the marker "Concentrating: <spell>" but sets its origin to the spell item, so the
+    // fallback match on the source item's name finds it. Seeding it would give one cast two auras,
+    // and write showIcon NEVER onto the marker, taking the Concentrating icon off the caster's token
+    // while they are still concentrating.
+    registerUuid("Actor.abc.Item.spirit", { documentName: "Item", name: "Spirit Guardians" });
+
+    const marker = fakeEffect({
+      name: "Concentrating: Spirit Guardians",
+      statuses: ["concentrating"]
+    });
+    assert.equal(auraSeedFor(marker, "Actor.abc.Item.spirit"), null);
+
+    // The spell's own applied effect, with the same origin and no status, still seeds.
+    const applied = fakeEffect({ name: "Spirit Guardians" });
+    assert.equal(auraSeedFor(applied, "Actor.abc.Item.spirit")?.radius, "15");
+  });
+
   test("a config already stored wins, including one deliberately switched off", () => {
     // Reseeding over a stored answer would turn an aura the GM had switched off back on every time
     // the effect was recreated, with no way to keep it off.
@@ -274,5 +294,54 @@ describe("auraSeedFor", () => {
     const seed = auraSeedFor(fakeEffect({ name: "Aura of Protection" }));
     assert.equal(seed.scaling, undefined);
     assert.equal(seed.radius, "10");
+  });
+});
+
+describe("ignoredDispositionsFor", () => {
+  // The translation between the two systems of meaning. An aura's disposition is relative, a
+  // product of the two tokens' values, so 1 means "my side" whoever I am. dnd5e's terrain behavior
+  // is absolute, testing the raw token.disposition against a list. Getting this backwards makes a
+  // spell that should slow the enemy slow the party instead, which is the failure that matters.
+  const FRIENDLY = 1;
+  const NEUTRAL = 0;
+  const HOSTILE = -1;
+
+  const sorted = value => [...value].sort((a, b) => a - b);
+
+  test("a friendly caster's enemies-only aura charges hostiles alone", () => {
+    assert.deepEqual(
+      sorted(ignoredDispositionsFor({ disposition: ENEMIES }, FRIENDLY)),
+      [NEUTRAL, FRIENDLY]
+    );
+  });
+
+  test("a hostile caster's enemies-only aura charges the party instead", () => {
+    // Same spell, opposite side of the table. Conjure Minor Elementals cast by an NPC has to make
+    // the ground difficult for the players, not for its own allies.
+    assert.deepEqual(
+      sorted(ignoredDispositionsFor({ disposition: ENEMIES }, HOSTILE)),
+      [HOSTILE, NEUTRAL]
+    );
+  });
+
+  test("an allies-only aura is the mirror of it", () => {
+    assert.deepEqual(sorted(ignoredDispositionsFor({ disposition: ALLIES }, FRIENDLY)), [HOSTILE, NEUTRAL]);
+    assert.deepEqual(sorted(ignoredDispositionsFor({ disposition: ALLIES }, HOSTILE)), [NEUTRAL, FRIENDLY]);
+  });
+
+  test("anyone means nobody is ignored", () => {
+    // Computed rather than special-cased, this comes out as "friendly and hostile ignored" for a
+    // friendly caster, because only a neutral token's product with 1 is 0.
+    assert.deepEqual(ignoredDispositionsFor({ disposition: 0 }, FRIENDLY), []);
+    assert.deepEqual(ignoredDispositionsFor({ disposition: 0 }, HOSTILE), []);
+  });
+
+  test("a neutral caster's sided aura reaches nobody, matching appliesTo", () => {
+    // Every product with 0 is 0, so `appliesTo` never matches a disposition of 1 or -1 either. The
+    // region has to agree, or the terrain would apply where the effect does not.
+    assert.deepEqual(
+      sorted(ignoredDispositionsFor({ disposition: ENEMIES }, NEUTRAL)),
+      [HOSTILE, NEUTRAL, FRIENDLY]
+    );
   });
 });

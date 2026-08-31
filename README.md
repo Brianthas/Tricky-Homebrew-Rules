@@ -406,6 +406,22 @@ Colour is set per aura in its Aura dialog. Left on **Automatic** it uses gold fo
 
 The ring has its own token HUD control, separate from the switch that turns the aura on and off. A permanent aura like Aura of Protection usually wants to keep running with its ring out of the way, so hiding the ring and disabling the aura are deliberately different buttons.
 
+### Difficult terrain
+
+An aura can make the ground inside it difficult terrain, for whoever its **Applies to** setting names. Tick **Difficult terrain** in the Aura dialog. Conjure Minor Elementals is the case it was built for: a 15 foot emanation whose ground is difficult terrain for your enemies, moving with you as you move.
+
+It is done with a scene **Region** rather than an active effect, because that is where Foundry works out what a square costs to enter. The region is an emanation attached to the emitting token, so Foundry moves it as part of the token's own update, and the module creates it when the aura goes live and deletes it when the aura stops.
+
+Regions are marked magical, so a creature that ignores magical difficult terrain ignores this. The region is only visible on the Regions layer; the aura's own ring is what you see on the map.
+
+Three things it does not do:
+
+| | |
+| --- | --- |
+| Walls | The region is the full circle. **Respect walls** still governs which tokens the aura's effect is applied to, but a wall does not carve a notch out of the terrain. |
+| Its own emitter | A region cannot exclude one token. **Also affects its own token** is not consulted, so an aura set to reach *anyone* charges its own caster too. Set it to allies or enemies and the caster falls out naturally. |
+| Secret tokens | dnd5e's behavior cannot be told to ignore a token with a **Secret** disposition, so one is always charged the terrain. |
+
 ### One click on the token HUD
 
 Selecting a token with auras adds a button to its HUD that turns all of them on or off at once. **Right click it** to choose individual auras instead, which matters once a paladin is carrying a permanent aura and a concentration spell at the same time. For an aura that is only sometimes running, like a spell you have just cast, that beats opening the sheet and hunting for the effect.

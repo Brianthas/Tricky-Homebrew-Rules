@@ -57,6 +57,18 @@ export function dependencies() {
       label: "CONFIG.Canvas.lightAnimations",
       rules: ["Auras, light ring styles"],
       present: () => !!CONFIG?.Canvas?.lightAnimations
+    },
+    {
+      label: "RegionDocument.createTokenEmanation",
+      rules: ["Auras, difficult terrain"],
+      present: () => typeof CONFIG?.Region?.documentClass?.createTokenEmanation === "function"
+    },
+    {
+      // dnd5e's, not Foundry's. Core supplies `modifyMovementCost`, which takes raw multipliers and
+      // knows nothing about which creatures ignore magical difficult terrain.
+      label: "dnd5e.difficultTerrain region behavior",
+      rules: ["Auras, difficult terrain"],
+      present: () => !!CONFIG?.RegionBehavior?.dataModels?.["dnd5e.difficultTerrain"]
     }
   ];
 }

@@ -27,7 +27,9 @@ function satisfyEverything() {
     Canvas: {
       polygonBackends: { move: { testCollision: () => {} } },
       lightAnimations: { emanation: {} }
-    }
+    },
+    Region: { documentClass: { createTokenEmanation: () => {} } },
+    RegionBehavior: { dataModels: { "dnd5e.difficultTerrain": class { } } }
   };
   return () => { globalThis.CONFIG = previous; };
 }

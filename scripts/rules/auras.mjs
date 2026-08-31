@@ -13,6 +13,12 @@ const AURA = "aura";
 /** Flag on an applied child effect, holding the uuid of the source effect that produced it. */
 const FROM_AURA = "fromAura";
 
+/** Flag on a Region this rule owns, holding the uuid of the aura effect it belongs to. */
+const FROM_AURA_REGION = "fromAuraRegion";
+
+/** The dnd5e region behavior that charges extra movement cost. */
+const TERRAIN_BEHAVIOR = "dnd5e.difficultTerrain";
+
 /**
  * Runtime property where a source effect's changes are parked.
  *
@@ -143,6 +149,11 @@ const DEFAULTS = {
   strength: "",
   showRadius: true,
 
+  // Off by default. A terrain region is a scene document rather than a drawing, so it costs a write
+  // where the ring costs nothing, and most auras are buffs that have no business changing the cost
+  // of moving through them.
+  difficultTerrain: false,
+
   // Empty means "pick from disposition". Every aura configured before this option existed stores
   // no colour at all, so empty has to keep meaning the old behaviour rather than black.
   colour: "",
@@ -234,7 +245,12 @@ export const auras = {
     Hooks.on("preCreateActiveEffect", onPreCreateEffect);
     for (const hook of ["createWall", "updateWall", "deleteWall"]) Hooks.on(hook, scheduleReconcile);
     Hooks.on("updateActor", scheduleReconcile);
-    Hooks.on("canvasReady", scheduleReconcile);
+    Hooks.on("canvasReady", () => {
+      sweepTerrainRegions().catch(err => {
+        console.error(`${MODULE_ID} | Failed to sweep stale aura terrain regions.`, err);
+      });
+      scheduleReconcile();
+    });
     Hooks.on("updateCombat", scheduleReconcile);
     Hooks.on("deleteCombat", scheduleReconcile);
     Hooks.on("createCombat", scheduleReconcile);
@@ -405,6 +421,14 @@ export function auraSeedFor(effect, origin) {
   // of its own, radiating from every recipient.
   if (effect.getFlag?.(MODULE_ID, FROM_AURA)) return null;
 
+  // The concentration marker is not the spell's effect, but it names the spell as its origin
+  // (dnd5e's `ActiveEffect5e.createConcentrationEffectData` sets `origin: item.uuid`), so the match
+  // on the source item's name below finds it. Seeding it would give one cast two auras, and write
+  // `showIcon: NEVER` onto the marker, taking the Concentrating icon off the caster's own token
+  // while they are still concentrating.
+  const concentrating = CONFIG.specialStatusEffects?.CONCENTRATING;
+  if (concentrating && effect.statuses?.has?.(concentrating)) return null;
+
   // Already configured, including deliberately switched off. An answer that is already stored is
   // never overwritten by the table's.
   if (effect.getFlag?.(MODULE_ID, AURA)) return null;
@@ -488,7 +512,11 @@ async function reconcile() {
   reconciling = true;
   try {
     const tokens = canvas.tokens.placeables.filter(token => token.actor);
-    if (!tokens.length) return;
+
+    // No tokens means no sources, but it does not mean nothing to clean up: a scene emptied while an
+    // aura was running still holds that aura's terrain region, and returning early here left it
+    // charging movement with nothing on the map emitting it.
+    if (!tokens.length) return applyTerrainRegions([]);
 
     const sources = collectSources(tokens);
     ensureSourceIcons(sources);
@@ -496,6 +524,7 @@ async function reconcile() {
     await applyDifference(tokens, desired);
     for (const token of tokens) drawAuraRing(token);
     await applyAuraLights(tokens);
+    await applyTerrainRegions(sources);
   } catch (err) {
     console.error(`${MODULE_ID} | Aura reconcile failed. Auras may be stale until the next change.`, err);
   } finally {
@@ -1106,6 +1135,184 @@ async function applyAuraLights(tokens) {
   }
 }
 
+/* -------------------------------------------- */
+/*  Difficult Terrain                           */
+/* -------------------------------------------- */
+
+/**
+ * Which absolute token dispositions the terrain behavior should leave alone.
+ *
+ * The two systems disagree about what a disposition means, and the translation is the whole of this
+ * function. An aura's `disposition` is *relative*: `appliesTo` multiplies the two tokens' values, so
+ * 1 means "same side as me" whoever I am and -1 means "the other side". dnd5e's behavior is
+ * *absolute*: `DifficultTerrainRegionBehaviorType._getTerrainEffects` tests
+ * `ignoredDispositions.has(token.disposition)` against the raw value. So the caster's own
+ * disposition has to be folded in here, and a hostile NPC casting the same spell gets the opposite
+ * list to a player casting it.
+ *
+ * Secret tokens are a gap rather than an oversight: dnd5e deletes SECRET from the field's choices,
+ * so it cannot be listed as ignored, and a secret token is charged the terrain whatever the aura
+ * says.
+ *
+ * @param {object} config             The aura's configuration.
+ * @param {number} sourceDisposition  The emitting token's own disposition.
+ * @returns {number[]}                Absolute dispositions to exclude.
+ */
+export function ignoredDispositionsFor(config, sourceDisposition) {
+  // "Anyone" excludes nobody. Computed rather than special-cased, every disposition times the
+  // caster's would have to equal 0, which is true only for a neutral caster: an ally-or-enemy
+  // question that was deliberately not asked would have come out as "friendly and hostile ignored".
+  if (config?.disposition === DISPOSITION.ANY) return [];
+
+  const source = Number(sourceDisposition) || 0;
+  return [
+    CONST.TOKEN_DISPOSITIONS.FRIENDLY,
+    CONST.TOKEN_DISPOSITIONS.NEUTRAL,
+    CONST.TOKEN_DISPOSITIONS.HOSTILE
+  ].filter(disposition => (disposition * source) !== config?.disposition);
+}
+
+/**
+ * Create, move and remove the terrain regions the live auras want.
+ *
+ * Foundry does the hard half. A region whose shape is an `emanation` based on a token and whose
+ * `attachment.token` names that token is recomputed by core inside the token's own update operation
+ * (`TokenDocument#computeAttachedRegionUpdates`), so the area follows the caster with no work here
+ * and no second write per step. This only has to decide which regions should exist.
+ *
+ * Keyed by the source effect's uuid, held in a flag on the region, so this owns exactly the regions
+ * it made and never touches a region the GM drew or one dnd5e placed for a spell template.
+ *
+ * @param {object[]} sources
+ */
+async function applyTerrainRegions(sources) {
+  const scene = canvas.scene;
+
+  // Both halves are needed and neither is this module's. Treating a missing one as "nothing wanted"
+  // rather than bailing means the teardown below still runs, so a world that loses the API mid-life
+  // is left clean instead of holding regions nothing can now remove.
+  const available = (typeof CONFIG.Region?.documentClass?.createTokenEmanation === "function")
+    && !!CONFIG.RegionBehavior?.dataModels?.[TERRAIN_BEHAVIOR];
+
+  const wanted = new Map();
+  for (const source of available ? sources : []) {
+    if (!source.config.difficultTerrain) continue;
+
+    // `createTokenEmanation` refuses an unsaved token, and a preview or a token being dragged in
+    // from the sidebar is not something to build a region around anyway.
+    if (!source.token.document.persisted) continue;
+    wanted.set(source.effect.uuid, source);
+  }
+
+  const existing = new Map();
+  const surplus = [];
+  for (const region of scene.regions) {
+    const uuid = region.getFlag(MODULE_ID, FROM_AURA_REGION);
+    if (!uuid) continue;
+
+    // One region per aura. A duplicate can only be left over from a failed pass, and two overlapping
+    // terrain regions charge the same square twice.
+    if (existing.has(uuid)) surplus.push(region.id);
+    else existing.set(uuid, region);
+  }
+
+  const stale = [...existing].filter(([uuid]) => !wanted.has(uuid)).map(([, region]) => region.id);
+  const removing = [...stale, ...surplus];
+  if (removing.length) await scene.deleteEmbeddedDocuments("Region", removing);
+
+  for (const [uuid, source] of wanted) {
+    await ensureTerrainRegion(uuid, source, existing.get(uuid) ?? null);
+  }
+}
+
+/**
+ * Make sure one aura's terrain region exists and matches its configuration.
+ *
+ * Anything that has drifted is fixed by deleting and recreating rather than by patching the shape.
+ * The emanation's radius, its elevation bounds and its scene level are all derived from the token
+ * and the range together inside `createTokenEmanation`, so editing one of them here would be a
+ * second copy of that arithmetic to keep in step with core. Recreating only happens when the radius,
+ * the disposition or the token actually changes, which is a configuration edit rather than a move.
+ *
+ * @param {string} uuid            The source effect's uuid.
+ * @param {object} source          The collected aura source.
+ * @param {object|null} existing   The region already standing for it, if any.
+ */
+async function ensureTerrainRegion(uuid, source, existing) {
+  const scene = canvas.scene;
+  const token = source.token.document;
+  const ignored = ignoredDispositionsFor(source.config, token.disposition);
+  const radius = source.radius * scene.dimensions.distancePixels;
+
+  if (existing) {
+    const shape = existing.shapes[0];
+    const behavior = existing.behaviors.find(b => b.type === TERRAIN_BEHAVIOR);
+    const sameShape = (shape?.type === "emanation") && (Math.abs((shape.radius ?? 0) - radius) < 1);
+    const sameSide = behavior && sameNumbers(behavior.system.ignoredDispositions, ignored);
+
+    // A token deleted and replaced leaves the attachment null, and a region that is not attached
+    // stops following whoever it was drawn around.
+    const sameToken = existing.attachment?.token?.id === token.id;
+
+    if (sameShape && sameSide && sameToken) return;
+    await existing.delete();
+  }
+
+  await CONFIG.Region.documentClass.createTokenEmanation(token, source.radius, {
+    name: source.effect.name,
+
+    // Shown only to someone working on the Regions layer. The aura already draws its own ring, and a
+    // second outline permanently on the map is noise rather than information.
+    visibility: CONST.REGION_VISIBILITY.LAYER,
+    behaviors: [{
+      type: TERRAIN_BEHAVIOR,
+      system: { magical: true, ignoredDispositions: ignored }
+    }],
+    [`flags.${MODULE_ID}.${FROM_AURA_REGION}`]: uuid
+  }, {
+    // Matched to the ring, which is a plain circle of `radius * distancePixels` from the token's
+    // edge. Conforming to the grid's metric instead would charge squares the ring does not cover,
+    // and the drawn circle is what anybody at the table is actually looking at.
+    gridBased: false
+  });
+}
+
+/**
+ * Do two sets of dispositions hold the same values?
+ * @param {Iterable<number>} a
+ * @param {number[]} b
+ * @returns {boolean}
+ */
+function sameNumbers(a, b) {
+  const left = new Set(a ?? []);
+  return (left.size === b.length) && b.every(value => left.has(value));
+}
+
+/**
+ * Remove terrain regions left behind on scenes nobody is looking at.
+ *
+ * The whole rule is single-scene: `reconcile` reads `canvas.tokens.placeables`, so switching scenes
+ * leaves the previous scene's regions with nothing to tear them down. They cost nothing while that
+ * scene is closed and are rebuilt by the first reconcile after it is opened again, so dropping them
+ * is cheaper than tracking them.
+ */
+async function sweepTerrainRegions() {
+  if (!game.users.activeGM?.isSelf) return;
+
+  for (const scene of game.scenes) {
+    if (scene.id === canvas.scene?.id) continue;
+
+    const ids = scene.regions.filter(region => region.getFlag(MODULE_ID, FROM_AURA_REGION)).map(r => r.id);
+    if (!ids.length) continue;
+
+    try {
+      await scene.deleteEmbeddedDocuments("Region", ids);
+    } catch (err) {
+      console.error(`${MODULE_ID} | Could not clear aura terrain regions on "${scene.name}".`, err);
+    }
+  }
+}
+
 /**
  * Is this token already using its light for something real?
  *
@@ -1553,6 +1760,11 @@ async function promptAuraConfig(effect) {
       <div class="form-fields"><input type="checkbox" name="respectWalls"${checked(current.respectWalls)}></div>
     </div>
     <div class="form-group">
+      <label>${L("DifficultTerrain")}</label>
+      <div class="form-fields"><input type="checkbox" name="difficultTerrain"${checked(current.difficultTerrain)}></div>
+      <p class="hint">${L("DifficultTerrainHint")}</p>
+    </div>
+    <div class="form-group">
       <label>${L("CombatOnly")}</label>
       <div class="form-fields"><input type="checkbox" name="combatOnly"${checked(current.combatOnly)}></div>
     </div>
@@ -1641,6 +1853,7 @@ async function promptAuraConfig(effect) {
       applyToSelf: !!result.applyToSelf,
       respectWalls: !!result.respectWalls,
       combatOnly: !!result.combatOnly,
+      difficultTerrain: !!result.difficultTerrain,
       stacks: !!result.stacks,
       showRadius: !!result.showRadius,
       colour: result.autoColour ? "" : String(result.colour ?? "").trim(),

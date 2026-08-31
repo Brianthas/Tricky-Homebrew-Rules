@@ -34,7 +34,15 @@ export function installStubs() {
         pulse: { label: "LIGHT.ANIMATION.Pulse" },
         dome: { label: "LIGHT.ANIMATION.Dome" }
       }
-    }
+    },
+
+    // Foundry lets a system rename the status that marks concentration, so the rules read it from
+    // here rather than hard-coding the id. The value is dnd5e's.
+    specialStatusEffects: { CONCENTRATING: "concentrating" }
+  };
+
+  globalThis.CONST ??= {
+    TOKEN_DISPOSITIONS: { FRIENDLY: 1, NEUTRAL: 0, HOSTILE: -1, SECRET: -2 }
   };
 
   globalThis.Hooks ??= { on: () => {}, once: () => {}, off: () => {} };
@@ -56,6 +64,7 @@ export function fakeEffect(data = {}) {
     isTemporary: data.isTemporary ?? false,
     duration: data.duration ?? {},
     type: data.type ?? "base",
+    statuses: new Set(data.statuses ?? []),
     parent: data.parent ?? null,
     origin: data.origin ?? null,
     flags,
