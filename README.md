@@ -368,6 +368,14 @@ Effects are now configured as they are created, from what this world knows about
 
 Homebrew has to be taught once. Configuring an effect that came from a spell pre-ticks **Remember this aura** and says why, because there is nowhere else those settings can survive to the next cast.
 
+### Who may remember an aura
+
+Configuring an aura needs nothing beyond owning the effect. **Remember this aura** is different: it writes a table shared by the whole world, so it needs either **Modify Configuration Settings** or **Create Items**, both set per role in Foundry's Configure Permissions. Assistant GMs and above have both by default; anyone lower needs one granting.
+
+A user without either does not see the checkbox, rather than ticking it and getting an error. Their aura still saves and still works - it just has to be configured again on the next cast, since a spell's effect is rebuilt each time.
+
+Foundry lets anyone with Modify Configuration Settings write the table directly. Anyone else asks the GM's client to do it, and that request is honoured only if the asking user may create items, so it cannot be used to rewrite the table by hand.
+
 ### Only the strongest applies
 
 Two paladins radiating Aura of Protection grant one bonus, not two, matching 5e. The stronger wins, and walking out of the stronger one's range downgrades you to the weaker rather than dropping you to nothing.
