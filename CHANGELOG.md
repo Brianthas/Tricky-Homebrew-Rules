@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.17.2
+
+- **A player can configure an aura again.** "Remember this aura" writes a world-scope setting, which Foundry allows only a GM to write, so a player saving an aura got `User lacks permission to update Setting`. The write is now handed to the GM's client over a socket, which is the only place it can succeed.
+- **A failed remember no longer reports the aura as unsaved.** The setting write sat in the same try block as everything else, so it aborted the save and reported "Could not save the aura configuration" - when the aura's own flag had been written successfully one line earlier and was working. The remember is caught on its own now, says what actually failed, and the reconcile still runs. This is what made the permission error look like total failure rather than a lost preference.
+- Configuring an effect that came from a spell pre-ticks Remember, so every player configuring a spell aura hit both of these on their first save.
+
 ## 0.17.1
 
 - **Difficult terrain no longer slows creatures flying over it.** `createTokenEmanation` builds a sphere, reaching the full radius above and below the emitter, so 0.17.0's region charged anything inside that volume: through a 15 foot emanation a hostile flying at 10 feet paid 30 movement for a 15 foot move, and only cleared it above 20 feet. Difficult terrain is a property of the ground, and Conjure Minor Elementals says "the ground in the Emanation". The region now occupies the emitter's own elevation band and nothing above it, and Foundry shifts that band with the emitter, so a caster on a ledge makes the ledge difficult rather than the floor below. A creature hovering at ground level is still charged: it occupies the same space as one standing there. Regions written by 0.17.0 are rebuilt on the next pass.

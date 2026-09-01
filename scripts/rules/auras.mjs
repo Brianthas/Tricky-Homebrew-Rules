@@ -80,6 +80,18 @@ const LIGHT_PREFIX = "light:";
 const CUSTOM_KEY = "aurasCustom";
 
 /**
+ * Socket this rule listens on, and the one thing it carries.
+ *
+ * "Remember this aura" writes a world-scope setting, which Foundry allows only a GM to do. A player
+ * configuring their own spell aura therefore threw `lacks permission to update Setting`, and because
+ * the write sat in the same try block as everything else it aborted the save and reported the whole
+ * configuration as failed - when the aura's own flag had already been written successfully one line
+ * earlier. The player asks the GM's client to do the write instead.
+ */
+const SOCKET = `module.${MODULE_ID}`;
+const REMEMBER_AURA = "rememberAura";
+
+/**
  * What this world knows about an aura by that name, its own answers first.
  *
  * The built-in table only covers official content. Homebrew gets configured by hand on every actor
@@ -104,6 +116,14 @@ function knownFor(name) {
 async function rememberAura(name, config) {
   const key = String(name ?? "").trim().toLowerCase();
   if (!key) return;
+
+  // Only a GM may write a world setting. Anyone else hands the job to the GM's client, which is the
+  // only place the write can succeed.
+  if (!game.user.isGM) {
+    if (!game.users.activeGM) throw new Error("No GM is connected to remember this aura.");
+    game.socket.emit(SOCKET, { action: REMEMBER_AURA, name, config });
+    return;
+  }
 
   // Everything the dialog asked for, not just the three columns the review screen happens to show.
   // Storing only radius, reach and self meant a remembered aura came back with a plain gold ring
@@ -262,9 +282,27 @@ export const auras = {
   },
 
   onReady() {
+    // Listened for by everyone and acted on by one, so two GMs do not both write the same setting.
+    game.socket.on(SOCKET, onSocket);
+
     if (isRuleEnabled(RULE_ID)) scheduleReconcile();
   }
 };
+
+/**
+ * A request from another client. Only the active GM acts on it.
+ * @param {object} data
+ */
+async function onSocket(data) {
+  if (data?.action !== REMEMBER_AURA) return;
+  if (!game.users.activeGM?.isSelf) return;
+
+  try {
+    await rememberAura(data.name, data.config);
+  } catch (err) {
+    console.error(`${MODULE_ID} | Failed to remember an aura on behalf of another user.`, err);
+  }
+}
 
 /* -------------------------------------------- */
 /*  Source Effects                              */
@@ -1903,11 +1941,21 @@ async function promptAuraConfig(effect) {
     // review screen matches on when it goes looking on somebody else's sheet. A spell's applied
     // effect has no item to name, so it is remembered under its own name, which is the name the
     // next cast's copy will arrive with.
+    //
+    // Caught separately from the save above. The aura's own flag is already written by this point,
+    // so a failure here loses the memory and nothing else: reporting it as "could not save the aura
+    // configuration" told a player their working aura had not saved, and skipped the reconcile that
+    // would have shown them it had.
     if (result.remember) {
       const item = effect.parent?.documentName === "Item" ? effect.parent : null;
       const name = item?.name ?? effect.name;
-      await rememberAura(name, config);
-      ui.notifications?.info(game.i18n.format("THR.Rules.Auras.Config.Remembered", { name }));
+      try {
+        await rememberAura(name, config);
+        ui.notifications?.info(game.i18n.format("THR.Rules.Auras.Config.Remembered", { name }));
+      } catch (err) {
+        console.error(`${MODULE_ID} | Saved the aura, but could not add it to the known auras.`, err);
+        ui.notifications?.warn(game.i18n.localize("THR.Rules.Auras.Config.RememberFailed"));
+      }
     }
 
     scheduleReconcile();
