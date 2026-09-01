@@ -5,7 +5,7 @@ import { installStubs, fakeEffect, setSetting, registerUuid } from "./stubs.mjs"
 installStubs();
 
 const {
-  ringColour, toHex, lightAnimationOf, sameLight, auraIsLive, auraSeedFor, ignoredDispositionsFor, groundBandFor
+  ringColour, toHex, lightAnimationOf, sameLight, auraIsLive, auraSeedFor, ignoredDispositionsFor, groundBandFor, canRememberAura
 } = await import("../scripts/rules/auras.mjs");
 
 const ALLIES = 1;
@@ -373,5 +373,33 @@ describe("groundBandFor", () => {
     assert.deepEqual(groundBandFor({ elevation: 0 }, 5), { bottom: 0, top: 5 });
     assert.deepEqual(groundBandFor({ elevation: 0, depth: 0 }, 0), { bottom: 0, top: 5 });
     assert.deepEqual(groundBandFor(null, 5), { bottom: 0, top: 5 });
+  });
+});
+
+describe("canRememberAura", () => {
+  // "Remember this aura" writes a world setting. Foundry lets anyone with SETTINGS_MODIFY do that
+  // directly (BaseSetting#canModify), and everyone else has to ask the GM over a socket. The gate on
+  // asking is the world's own answer to "may this player add shared content".
+  const user = (...granted) => ({ can: p => granted.includes(p) });
+
+  test("a user who may modify settings qualifies, having no need of the socket", () => {
+    assert.equal(canRememberAura(user("SETTINGS_MODIFY")), true);
+  });
+
+  test("a player who may create items qualifies", () => {
+    assert.equal(canRememberAura(user("ITEM_CREATE")), true);
+  });
+
+  test("a player with neither does not", () => {
+    assert.equal(canRememberAura(user("SHOW_CURSOR")), false);
+    assert.equal(canRememberAura(user()), false);
+  });
+
+  test("a user the GM cannot resolve does not", () => {
+    // The socket carries a user id, and a disconnected or deleted user resolves to nothing. Treating
+    // that as allowed would let any client rewrite the table by sending an unknown id.
+    assert.equal(canRememberAura(null), false);
+    assert.equal(canRememberAura(undefined), false);
+    assert.equal(canRememberAura({}), false);
   });
 });

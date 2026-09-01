@@ -117,11 +117,16 @@ async function rememberAura(name, config) {
   const key = String(name ?? "").trim().toLowerCase();
   if (!key) return;
 
-  // Only a GM may write a world setting. Anyone else hands the job to the GM's client, which is the
-  // only place the write can succeed.
-  if (!game.user.isGM) {
+  // Written here when Foundry will accept it. `SETTINGS_MODIFY` is what `BaseSetting#canModify`
+  // actually tests, and a GM always has it, so this covers the GM and any assistant without a
+  // special case for either.
+  if (!game.user.can("SETTINGS_MODIFY")) {
+    if (!canRememberAura(game.user)) throw new Error("Not allowed to change this world's known auras.");
     if (!game.users.activeGM) throw new Error("No GM is connected to remember this aura.");
-    game.socket.emit(SOCKET, { action: REMEMBER_AURA, name, config });
+
+    // The user id travels with the request so the GM can check the asker's permission rather than
+    // trusting whoever sent it.
+    game.socket.emit(SOCKET, { action: REMEMBER_AURA, userId: game.user.id, name, config });
     return;
   }
 
@@ -290,12 +295,38 @@ export const auras = {
 };
 
 /**
+ * May this user teach the world about an aura?
+ *
+ * Tied to creating items rather than to being a GM. The known-auras table is shared content in the
+ * same way a compendium item is, so the world's own answer to "may this player add content" is the
+ * honest one, and it is a switch Bryan already controls in Configure Permissions.
+ *
+ * `SETTINGS_MODIFY` passes on its own because a user who has it writes the setting directly and
+ * never reaches the socket at all.
+ *
+ * @param {object} user
+ * @returns {boolean}
+ */
+export function canRememberAura(user) {
+  return !!(user?.can?.("SETTINGS_MODIFY") || user?.can?.("ITEM_CREATE"));
+}
+
+/**
  * A request from another client. Only the active GM acts on it.
  * @param {object} data
  */
 async function onSocket(data) {
   if (data?.action !== REMEMBER_AURA) return;
   if (!game.users.activeGM?.isSelf) return;
+
+  // Checked against the user the request names, not against the sender's own claim to be allowed.
+  // The GM's client is doing the write, so without this any connected client could rewrite the
+  // world's aura table by emitting the message directly.
+  const requester = game.users.get(data.userId);
+  if (!canRememberAura(requester)) {
+    console.warn(`${MODULE_ID} | Refused an aura remember from a user without permission to create items.`);
+    return;
+  }
 
   try {
     await rememberAura(data.name, data.config);
@@ -1887,11 +1918,11 @@ async function promptAuraConfig(effect) {
       <div class="form-fields"><input type="checkbox" name="stacks"${checked(current.stacks)}></div>
       <p class="hint">${L("StacksHint")}</p>
     </div>
-    <div class="form-group">
+    ${canRememberAura(game.user) ? `<div class="form-group">
       <label>${L("Remember")}</label>
       <div class="form-fields"><input type="checkbox" name="remember"${checked(transient)}></div>
       <p class="hint">${L("RememberHint")}</p>
-    </div>
+    </div>` : ""}
     <div class="form-group">
       <label>${L("Strength")}</label>
       <div class="form-fields"><input type="text" name="strength" value="${current.strength ?? ""}"></div>

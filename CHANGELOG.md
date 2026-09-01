@@ -2,7 +2,8 @@
 
 ## 0.17.2
 
-- **A player can configure an aura again.** "Remember this aura" writes a world-scope setting, which Foundry allows only a GM to write, so a player saving an aura got `User lacks permission to update Setting`. The write is now handed to the GM's client over a socket, which is the only place it can succeed.
+- **A player can configure an aura again.** "Remember this aura" writes a world-scope setting, and a player saving an aura got `User lacks permission to update Setting`. Foundry allows the write to anyone holding `SETTINGS_MODIFY`, which a GM always has, so those users still write it directly. Everyone else asks the GM's client to do it over a socket.
+- **Remembering an aura is tied to creating items, not to being a GM.** The known-auras table is shared content in the same way a compendium item is, so the permission that governs it is the world's own answer to "may this player add content", set in Configure Permissions. A player without it does not see the Remember checkbox at all rather than ticking it and failing, and the GM's client checks the asking user's permission before writing, so the socket cannot be used to rewrite the table.
 - **A failed remember no longer reports the aura as unsaved.** The setting write sat in the same try block as everything else, so it aborted the save and reported "Could not save the aura configuration" - when the aura's own flag had been written successfully one line earlier and was working. The remember is caught on its own now, says what actually failed, and the reconcile still runs. This is what made the permission error look like total failure rather than a lost preference.
 - Configuring an effect that came from a spell pre-ticks Remember, so every player configuring a spell aura hit both of these on their first save.
 
