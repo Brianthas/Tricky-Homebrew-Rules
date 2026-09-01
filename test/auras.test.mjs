@@ -5,7 +5,7 @@ import { installStubs, fakeEffect, setSetting, registerUuid } from "./stubs.mjs"
 installStubs();
 
 const {
-  ringColour, toHex, lightAnimationOf, sameLight, auraIsLive, auraSeedFor, ignoredDispositionsFor, groundBandFor, canRememberAura
+  ringColour, toHex, lightAnimationOf, sameLight, auraIsLive, auraSeedFor, ignoredDispositionsFor, groundBandFor, canRememberAura, onSocket
 } = await import("../scripts/rules/auras.mjs");
 
 const ALLIES = 1;
@@ -401,5 +401,88 @@ describe("canRememberAura", () => {
     assert.equal(canRememberAura(null), false);
     assert.equal(canRememberAura(undefined), false);
     assert.equal(canRememberAura({}), false);
+  });
+});
+
+describe("onSocket", () => {
+  // The GM's half of "Remember this aura" when a player asks for it. Testing it here rather than in
+  // Foundry because the branch needs a player and a GM connected at once, which one browser session
+  // cannot produce. The network hop is Foundry's; everything either side of it is checked.
+
+  const asGM = (activeGMIsSelf, users = {}) => {
+    const previousUsers = game.users;
+    const previousUser = game.user;
+    game.users = {
+      activeGM: activeGMIsSelf === null ? null : { isSelf: activeGMIsSelf },
+      get: id => users[id]
+    };
+    // The receiving client writes the setting itself, so it holds the permission to do so.
+    game.user = { can: () => true, id: "gm" };
+    return () => { game.users = previousUsers; game.user = previousUser; };
+  };
+
+  const permitted = { can: p => p === "ITEM_CREATE" };
+  const forbidden = { can: () => false };
+  const request = (userId = "p3") => ({
+    action: "rememberAura", userId, name: "Conjure Minor Elementals",
+    config: { enabled: true, radius: "15" }
+  });
+
+  const table = () => setSetting("aurasCustom", {});
+
+  test("a permitted user's request is written", async () => {
+    const restoreSetting = table();
+    const restore = asGM(true, { p3: permitted });
+    try {
+      await onSocket(request());
+      assert.equal(game.settings.get(null, "aurasCustom")["conjure minor elementals"]?.radius, "15");
+    } finally {
+      restore(); restoreSetting();
+    }
+  });
+
+  test("a user without the permission is refused", async () => {
+    // Without this the socket is a way for any connected client to rewrite the world's aura table.
+    const restoreSetting = table();
+    const restore = asGM(true, { p3: forbidden });
+    try {
+      await onSocket(request());
+      assert.deepEqual(game.settings.get(null, "aurasCustom"), {});
+    } finally {
+      restore(); restoreSetting();
+    }
+  });
+
+  test("a user id that resolves to nobody is refused", async () => {
+    const restoreSetting = table();
+    const restore = asGM(true, {});
+    try {
+      await onSocket(request("someone-who-left"));
+      assert.deepEqual(game.settings.get(null, "aurasCustom"), {});
+    } finally {
+      restore(); restoreSetting();
+    }
+  });
+
+  test("only the active GM writes, so two GMs do not both act", async () => {
+    const restoreSetting = table();
+    const restore = asGM(false, { p3: permitted });
+    try {
+      await onSocket(request());
+      assert.deepEqual(game.settings.get(null, "aurasCustom"), {});
+    } finally {
+      restore(); restoreSetting();
+    }
+  });
+
+  test("another module's socket traffic is ignored", async () => {
+    const restoreSetting = table();
+    const restore = asGM(true, { p3: permitted });
+    try {
+      await onSocket({ action: "somethingElse", userId: "p3", name: "X", config: {} });
+      assert.deepEqual(game.settings.get(null, "aurasCustom"), {});
+    } finally {
+      restore(); restoreSetting();
+    }
   });
 });

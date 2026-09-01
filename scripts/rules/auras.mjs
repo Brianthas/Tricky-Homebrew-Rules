@@ -315,8 +315,11 @@ export function canRememberAura(user) {
  * A request from another client. Only the active GM acts on it.
  * @param {object} data
  */
-async function onSocket(data) {
+export async function onSocket(data) {
   if (data?.action !== REMEMBER_AURA) return;
+
+  // One writer. Every client receives the message, and two GMs both acting on it would write the
+  // same setting twice, the second overwriting a table the first had just changed.
   if (!game.users.activeGM?.isSelf) return;
 
   // Checked against the user the request names, not against the sender's own claim to be allowed.

@@ -66,4 +66,4 @@ does not run npm.
 `eslint.config.mjs` is flat config on eslint 10. `no-undef` is off because fvtt-types covers the
 globals. `no-useless-assignment` is off because the `let x = null; try { x = ... } catch { return
 null; }` idiom in `expire-effects.mjs` and `source-named-effects.mjs` reads as a dead store to it.
-`npm run lint` is clean; `npm test` runs the same 99 tests CI does.
+`npm run lint` is clean; `npm test` runs the same 104 tests CI does.
