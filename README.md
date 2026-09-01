@@ -422,7 +422,11 @@ It is done with a scene **Region** rather than an active effect, because that is
 
 Regions are marked magical, so a creature that ignores magical difficult terrain ignores this. The region is only visible on the Regions layer; the aura's own ring is what you see on the map.
 
-Difficult terrain is a property of the ground, so the region occupies the emitter's own elevation band and nothing above it. A creature flying over the area is not slowed; one hovering at ground level is, since it occupies the same space as a creature standing there. A caster on a ledge makes the ledge difficult rather than the floor below, and the band follows them if they change elevation.
+Difficult terrain is a property of the ground, so by default the region occupies the emitter's own elevation band and nothing above it. A creature flying over the area is not slowed; one hovering at ground level is, since it occupies the same space as a creature standing there. A caster on a ledge makes the ledge difficult rather than the floor below, and the band follows them if they change elevation.
+
+**Terrain reaches overhead** turns that off, extending the region the full radius up and down as well as sideways. Conjure Minor Elementals wants it off, because it makes *the ground* in its emanation difficult. Spirit Guardians wants it on, because it halves the Speed of any creature *in the Emanation*, flying included, and it ships that way in the known-auras table.
+
+Neither setting cares how a creature moves. Walking, burrowing, climbing and swimming are charged either way, and teleporting never is - that is dnd5e's `TerrainData5e`, not a choice made here. The only thing the option changes is how far up and down the area reaches.
 
 Three things it does not do:
 

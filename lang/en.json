@@ -86,6 +86,8 @@
   "THR.Rules.Auras.Config.RespectWalls": "Blocked by walls",
   "THR.Rules.Auras.Config.DifficultTerrain": "Difficult terrain",
   "THR.Rules.Auras.Config.DifficultTerrainHint": "Makes the ground inside the aura difficult terrain for whoever the Applies to setting names. Costs the same movement as any other difficult terrain, and a creature that ignores magical difficult terrain ignores this. Uses a scene Region attached to the token, so it follows the emitter and is removed when the aura ends. It covers the emitter's own elevation band and nothing above it, so a flying creature is not slowed. Walls are not taken into account: the region is the full circle even where Respect walls stops the effect being applied.",
+  "THR.Rules.Auras.Config.TerrainFullHeight": "Terrain reaches overhead",
+  "THR.Rules.Auras.Config.TerrainFullHeightHint": "Extends the difficult terrain the full radius up and down as well as sideways, so a creature flying over the area is slowed too. Off by default, because printed difficult terrain is a property of the ground: Conjure Minor Elementals makes the ground in its emanation difficult, and a flying enemy is not on it. Turn this on for a homebrew effect that fills a volume rather than covering a floor. Either way, walking, burrowing, climbing and swimming are all charged and teleporting is not.",
   "THR.Rules.Auras.Config.CombatOnly": "Only during combat",
   "THR.Rules.Auras.Config.Stacks": "Stacks with the same aura",
   "THR.Rules.Auras.Config.StacksHint": "Off by default, matching 5e: two paladins radiating the same aura grant one bonus, the stronger of the two. Turn on for homebrew meant to add up.",

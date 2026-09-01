@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.18.0
+
+- **Difficult terrain can reach overhead.** 0.17.1 made it ground level only, which is right for Conjure Minor Elementals - it makes *the ground* in its emanation difficult, so a flying enemy is not on it - and wrong for anything that fills a volume. **Terrain reaches overhead** extends the region the full radius up and down as well as sideways, so a creature flying through is slowed too. Off by default, and greyed out until Difficult terrain is on.
+- **Spirit Guardians ships with it on.** It halves the Speed of any other creature *in the Emanation*, not of anything standing on the ground in it, so a flyer passing through is caught. Halved Speed and doubled movement cost are not the same lever, but they come to the same number for a creature moving inside the area, and the region stops at the emanation's edge rather than following the creature out.
+- Neither setting cares how a creature moves: walking, burrowing, climbing and swimming are charged either way and teleporting never is, which is dnd5e's handling rather than anything decided here. The option changes the area's height, nothing else.
+
 ## 0.17.2
 
 - **A player can configure an aura again.** "Remember this aura" writes a world-scope setting, and a player saving an aura got `User lacks permission to update Setting`. Foundry allows the write to anyone holding `SETTINGS_MODIFY`, which a GM always has, so those users still write it directly. Everyone else asks the GM's client to do it over a socket.

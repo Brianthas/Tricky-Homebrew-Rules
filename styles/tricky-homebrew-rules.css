@@ -263,3 +263,9 @@
   overflow: hidden auto;
   scrollbar-gutter: stable;
 }
+
+/* A sub-option whose parent switch is off. Dimmed rather than hidden, so it is clear the option
+   exists and clear why it cannot be set. */
+.tricky-disabled {
+  opacity: 0.5;
+}

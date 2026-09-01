@@ -5,7 +5,7 @@ import { installStubs, fakeEffect, setSetting, registerUuid } from "./stubs.mjs"
 installStubs();
 
 const {
-  ringColour, toHex, lightAnimationOf, sameLight, auraIsLive, auraSeedFor, ignoredDispositionsFor, groundBandFor, canRememberAura, onSocket
+  ringColour, toHex, lightAnimationOf, sameLight, auraIsLive, auraSeedFor, ignoredDispositionsFor, terrainBandFor, canRememberAura, onSocket
 } = await import("../scripts/rules/auras.mjs");
 
 const ALLIES = 1;
@@ -346,33 +346,48 @@ describe("ignoredDispositionsFor", () => {
   });
 });
 
-describe("groundBandFor", () => {
-  // Difficult terrain is a property of the ground. createTokenEmanation builds a sphere, so 0.17.0
-  // charged a flying creature anywhere inside the radius: a hostile flying at 10 feet paid 30 for a
-  // 15 foot move through a 15 foot emanation and only cleared it above 20.
+describe("terrainBandFor", () => {
+  // Two shapes. The default slab is at the emitter's own height, because printed difficult terrain
+  // is a property of the ground. Full height restores the sphere createTokenEmanation builds, which
+  // is what 0.17.0 shipped by accident and is now an opt in for homebrew that fills a volume.
 
-  test("a medium creature on the floor occupies one square of height", () => {
-    assert.deepEqual(groundBandFor({ elevation: 0, depth: 1 }, 5), { bottom: 0, top: 5 });
+  test("a medium creature on the floor gets a one square slab", () => {
+    assert.deepEqual(terrainBandFor({ elevation: 0, depth: 1 }, 5, 15), { bottom: 0, top: 5 });
   });
 
-  test("the band sits at the emitter's own elevation, not at the floor", () => {
+  test("the slab sits at the emitter's own elevation, not at the floor", () => {
     // A caster on a ledge makes the ledge difficult, not the ground twenty feet below it.
-    assert.deepEqual(groundBandFor({ elevation: 20, depth: 1 }, 5), { bottom: 20, top: 25 });
+    assert.deepEqual(terrainBandFor({ elevation: 20, depth: 1 }, 5, 15), { bottom: 20, top: 25 });
   });
 
-  test("a taller creature occupies a taller band", () => {
-    assert.deepEqual(groundBandFor({ elevation: 0, depth: 2 }, 5), { bottom: 0, top: 10 });
+  test("a taller creature gets a taller slab", () => {
+    assert.deepEqual(terrainBandFor({ elevation: 0, depth: 2 }, 5, 15), { bottom: 0, top: 10 });
+  });
+
+  test("full height reaches the radius above and below", () => {
+    // The measured difference: a hostile flying at 10 feet pays double with this on and nothing with
+    // it off, through a 15 foot emanation.
+    assert.deepEqual(terrainBandFor({ elevation: 0, depth: 1 }, 5, 15, true), { bottom: -15, top: 20 });
+  });
+
+  test("full height follows the emitter's elevation too", () => {
+    assert.deepEqual(terrainBandFor({ elevation: 20, depth: 1 }, 5, 15, true), { bottom: 5, top: 40 });
+  });
+
+  test("the two shapes differ, or the setting would do nothing", () => {
+    const token = { elevation: 0, depth: 1 };
+    assert.notDeepEqual(terrainBandFor(token, 5, 15, false), terrainBandFor(token, 5, 15, true));
   });
 
   test("a scene using metres is measured in metres", () => {
-    assert.deepEqual(groundBandFor({ elevation: 0, depth: 1 }, 1.5), { bottom: 0, top: 1.5 });
+    assert.deepEqual(terrainBandFor({ elevation: 0, depth: 1 }, 1.5, 4.5), { bottom: 0, top: 1.5 });
   });
 
   test("a missing depth or distance falls back rather than collapsing the band", () => {
     // A zero-height band contains nothing, so the terrain would silently apply to nobody.
-    assert.deepEqual(groundBandFor({ elevation: 0 }, 5), { bottom: 0, top: 5 });
-    assert.deepEqual(groundBandFor({ elevation: 0, depth: 0 }, 0), { bottom: 0, top: 5 });
-    assert.deepEqual(groundBandFor(null, 5), { bottom: 0, top: 5 });
+    assert.deepEqual(terrainBandFor({ elevation: 0 }, 5, 15), { bottom: 0, top: 5 });
+    assert.deepEqual(terrainBandFor({ elevation: 0, depth: 0 }, 0, 15), { bottom: 0, top: 5 });
+    assert.deepEqual(terrainBandFor(null, 5, 15), { bottom: 0, top: 5 });
   });
 });
 

@@ -39,7 +39,15 @@ export const KNOWN_AURAS = {
   "circle of power": { radius: 30, disposition: 1, applyToSelf: true },
 
   // Hostile emanations
-  "spirit guardians": { radius: 15, disposition: -1, applyToSelf: false },
+  //
+  // Spirit Guardians halves Speed for "any other creature in the Emanation", not for anything on the
+  // ground in it, so its slow reaches a creature flying through and the terrain is full height.
+  // Halved Speed and doubled movement cost are not the same lever, but they come to the same number
+  // for a creature moving inside the area, and the region ends at the emanation's edge, which is
+  // closer to "in the Emanation" than halving the creature's Speed for its whole turn would be.
+  "spirit guardians": {
+    radius: 15, disposition: -1, applyToSelf: false, difficultTerrain: true, terrainFullHeight: true
+  },
 
   // The 2024 spell, whose emanation does two things: the extra 2d8 applies to anything you hit
   // inside it, and the ground in it is Difficult Terrain for your enemies. Only the second half is

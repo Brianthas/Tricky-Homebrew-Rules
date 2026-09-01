@@ -179,6 +179,10 @@ const DEFAULTS = {
   // of moving through them.
   difficultTerrain: false,
 
+  // Off, so difficult terrain means what it means in print: a property of the ground. On, the region
+  // is a sphere and catches anything flying over it.
+  terrainFullHeight: false,
+
   // Empty means "pick from disposition". Every aura configured before this option existed stores
   // no colour at all, so empty has to keep meaning the old behaviour rather than black.
   colour: "",
@@ -1326,12 +1330,12 @@ async function ensureTerrainRegion(uuid, source, existing) {
     // stops following whoever it was drawn around.
     const sameToken = existing.attachment?.token?.id === token.id;
 
-    // 0.17.0 left the sphere `createTokenEmanation` builds, so a region written by it reaches the
-    // full radius overhead and charges flying creatures. Rebuilt rather than left alone.
-    const band = groundBandFor(token, scene.grid.distance);
-    const onGround = (existing.elevation?.bottom === band.bottom) && (existing.elevation?.top === band.top);
+    // Compared rather than assumed, so switching Reaches overhead on or off rebuilds the region, and
+    // so a region written by 0.17.0 - which always left the sphere - is corrected on the next pass.
+    const band = terrainBandFor(token, scene.grid.distance, source.radius, source.config.terrainFullHeight);
+    const sameBand = (existing.elevation?.bottom === band.bottom) && (existing.elevation?.top === band.top);
 
-    if (sameShape && sameSide && sameToken && onGround) return;
+    if (sameShape && sameSide && sameToken && sameBand) return;
     await existing.delete();
   }
 
@@ -1354,32 +1358,49 @@ async function ensureTerrainRegion(uuid, source, existing) {
   });
 
   // `createTokenEmanation` writes its own elevation last, so this cannot be passed in with the rest.
-  await region?.update({ elevation: groundBandFor(token, scene.grid.distance) });
+  // Skipped entirely for a full height region, whose band is the one Foundry has already written.
+  if (!source.config.terrainFullHeight) {
+    await region?.update({ elevation: terrainBandFor(token, scene.grid.distance, source.radius, false) });
+  }
 }
 
 /**
- * The elevation band a terrain region occupies: the emitter's own, and nothing above it.
+ * The elevation band a terrain region occupies.
  *
- * Difficult terrain is a property of the ground, not of the air over it. `createTokenEmanation`
- * builds a sphere, reaching the full radius above and below the token, which charged a flying
- * creature anywhere inside it: measured against a 15 foot emanation, a hostile flying at 10 feet
- * paid 30 for a 15 foot move and only cleared it above 20 feet. Conjure Minor Elementals says "the
- * ground in the Emanation", and every difficult terrain in 5e reads the same way.
+ * Two shapes, and the setting picks between them.
  *
- * The band is the emitter's own occupied space, so a caster on a ledge makes the ledge difficult
- * rather than the floor below it. Foundry shifts the band with the emitter when it changes elevation
- * (`TokenDocument#computeAttachedRegionUpdates`), so this survives the caster flying or climbing.
+ * The default is a **slab** at the emitter's own height: difficult terrain in 5e is a property of
+ * the ground, not of the air over it, and Conjure Minor Elementals says "the ground in the
+ * Emanation". Taking the emitter's own occupied space means a caster on a ledge makes the ledge
+ * difficult rather than the floor below, and Foundry shifts the band with them when they change
+ * elevation (`TokenDocument#computeAttachedRegionUpdates`), so it follows a caster who flies.
  *
- * A creature hovering at ground level is still charged. It occupies the same band as one standing
- * there, and there is nothing in the document to tell the two apart.
+ * **Full height** restores the sphere `createTokenEmanation` builds, reaching the radius above and
+ * below as well as sideways. That is not how printed difficult terrain reads, which is why it is
+ * opt in, but a homebrew field that fills a volume wants it: measured on a 15 foot emanation, a
+ * hostile flying at 10 feet pays 30 movement for a 15 foot move with it on, and 15 with it off.
+ *
+ * Neither shape looks at *how* a creature moves. Walking, burrowing, climbing and swimming are all
+ * charged either way, and teleporting never is - dnd5e decides that, in `TerrainData5e`. The only
+ * thing this changes is how far up and down the region reaches, which in practice means whether a
+ * flyer overhead is caught. A creature hovering at the emitter's own height is charged by both,
+ * since it occupies the same space as one standing there and nothing in the document separates them.
  *
  * @param {object} token     The emitting token document.
  * @param {number} distance  The scene's grid distance, in feet per square.
+ * @param {number} radius    The aura's radius in feet.
+ * @param {boolean} full     Reach the full radius above and below rather than hugging the emitter.
  * @returns {{bottom: number, top: number}}
  */
-export function groundBandFor(token, distance) {
+export function terrainBandFor(token, distance, radius = 0, full = false) {
   const bottom = token?.elevation ?? 0;
-  return { bottom, top: bottom + ((token?.depth || 1) * (distance || 5)) };
+  const height = (token?.depth || 1) * (distance || 5);
+
+  // Matching what `createTokenEmanation` writes, so the region is left exactly as Foundry built it
+  // and there is no second write on creation.
+  if (full) return { bottom: bottom - radius, top: bottom + height + radius };
+
+  return { bottom, top: bottom + height };
 }
 
 /**
@@ -1766,7 +1787,36 @@ function onRenderEffectConfig(app, html) {
  *
  * @param {object} dialog
  */
+/**
+ * Keep "Reaches overhead" tied to the switch it depends on.
+ *
+ * It is a sub-option of Difficult terrain and does nothing on its own, so an enabled-looking checkbox
+ * beside a switch that is off is a promise the aura will not keep.
+ *
+ * @param {object} dialog
+ */
+function bindTerrainControls(dialog) {
+  try {
+    const root = dialog?.element;
+    const terrain = root?.querySelector("input[name=difficultTerrain]");
+    const height = root?.querySelector("input[name=terrainFullHeight]");
+    if (!terrain || !height) return;
+
+    const sync = () => {
+      height.disabled = !terrain.checked;
+      height.closest(".form-group")?.classList.toggle("tricky-disabled", !terrain.checked);
+    };
+
+    terrain.addEventListener("change", sync);
+    sync();
+  } catch (err) {
+    console.error(`${MODULE_ID} | Failed to wire up the difficult terrain controls.`, err);
+  }
+}
+
 function bindColourControls(dialog) {
+  bindTerrainControls(dialog);
+
   try {
     const root = dialog?.element;
     const swatch = root?.querySelector("input[name=colour]");
@@ -1869,6 +1919,11 @@ async function promptAuraConfig(effect) {
       <div class="form-fields"><input type="checkbox" name="difficultTerrain"${checked(current.difficultTerrain)}></div>
       <p class="hint">${L("DifficultTerrainHint")}</p>
     </div>
+    <div class="form-group tricky-terrain-height">
+      <label>${L("TerrainFullHeight")}</label>
+      <div class="form-fields"><input type="checkbox" name="terrainFullHeight"${checked(current.terrainFullHeight)}></div>
+      <p class="hint">${L("TerrainFullHeightHint")}</p>
+    </div>
     <div class="form-group">
       <label>${L("CombatOnly")}</label>
       <div class="form-fields"><input type="checkbox" name="combatOnly"${checked(current.combatOnly)}></div>
@@ -1959,6 +2014,7 @@ async function promptAuraConfig(effect) {
       respectWalls: !!result.respectWalls,
       combatOnly: !!result.combatOnly,
       difficultTerrain: !!result.difficultTerrain,
+      terrainFullHeight: !!result.terrainFullHeight,
       stacks: !!result.stacks,
       showRadius: !!result.showRadius,
       colour: result.autoColour ? "" : String(result.colour ?? "").trim(),
