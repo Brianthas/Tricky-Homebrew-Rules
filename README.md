@@ -424,7 +424,9 @@ Regions are marked magical, so a creature that ignores magical difficult terrain
 
 Difficult terrain is a property of the ground, so by default the region occupies the emitter's own elevation band and nothing above it. A creature flying over the area is not slowed; one hovering at ground level is, since it occupies the same space as a creature standing there. A caster on a ledge makes the ledge difficult rather than the floor below, and the band follows them if they change elevation.
 
-**Terrain reaches overhead** turns that off, extending the region the full radius up and down as well as sideways. Conjure Minor Elementals wants it off, because it makes *the ground* in its emanation difficult. Spirit Guardians wants it on, because it halves the Speed of any creature *in the Emanation*, flying included, and it ships that way in the known-auras table.
+**Terrain reaches overhead** turns that off, extending the region the full radius up and down as well as sideways. Conjure Minor Elementals wants it off, because it makes *the ground* in its emanation difficult. Turn it on for homebrew that fills a volume rather than covering a floor.
+
+Before reaching for it, check whether the spell already carries its own effect. dnd5e's 2024 Spirit Guardians ships a Half Speed effect that multiplies walk, fly, climb, swim and burrow by 0.5, and the aura radiating that effect is the whole automation - adding difficult terrain on top would halve the speed and double the cost at once. Aura of Life, Beacon of Hope and Antilife Shell ship their own effects too.
 
 Neither setting cares how a creature moves. Walking, burrowing, climbing and swimming are charged either way, and teleporting never is - that is dnd5e's `TerrainData5e`, not a choice made here. The only thing the option changes is how far up and down the area reaches.
 

@@ -40,14 +40,12 @@ export const KNOWN_AURAS = {
 
   // Hostile emanations
   //
-  // Spirit Guardians halves Speed for "any other creature in the Emanation", not for anything on the
-  // ground in it, so its slow reaches a creature flying through and the terrain is full height.
-  // Halved Speed and doubled movement cost are not the same lever, but they come to the same number
-  // for a creature moving inside the area, and the region ends at the emanation's edge, which is
-  // closer to "in the Emanation" than halving the creature's Speed for its whole turn would be.
-  "spirit guardians": {
-    radius: 15, disposition: -1, applyToSelf: false, difficultTerrain: true, terrainFullHeight: true
-  },
+  // No difficult terrain here, deliberately. dnd5e's 2024 Spirit Guardians ships its own "Half
+  // Speed" effect, whose changes multiply walk, fly, climb, swim and burrow by 0.5, and radiating
+  // that effect is exactly what this aura is for. Measured: a Ghoul in range went from 30 to 15
+  // walking. Adding a terrain region on top halves the speed *and* doubles the cost, leaving a
+  // quarter of normal movement.
+  "spirit guardians": { radius: 15, disposition: -1, applyToSelf: false },
 
   // The 2024 spell, whose emanation does two things: the extra 2d8 applies to anything you hit
   // inside it, and the ground in it is Difficult Terrain for your enemies. Only the second half is
