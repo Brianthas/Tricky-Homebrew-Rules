@@ -13,9 +13,19 @@ jobs:
       - uses: actions/setup-node@v7
         with:
           node-version: "22"
+          cache: npm
+
+      - name: Install dev dependencies
+        run: npm ci
 
       - name: Check JavaScript syntax
-        run: for f in $(find scripts -name '*.mjs'); do node --check "$f"; done
+        run: for f in $(find scripts test tools -name '*.mjs'); do node --check "$f"; done
+
+      # Lint runs in CI rather than only on demand: `npm run lint` passing locally depends on
+      # someone remembering to run it. eslint 10 handed a directory reads every file the flat
+      # config does not ignore, currently 23, and the run fails on any error.
+      - name: Lint
+        run: npm run lint
 
       - name: Validate module.json
         run: node -e "JSON.parse(require('fs').readFileSync('module.json','utf8')); console.log('module.json OK')"

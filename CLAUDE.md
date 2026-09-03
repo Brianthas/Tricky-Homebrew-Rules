@@ -60,10 +60,23 @@ editor and a mistyped document key is flagged instead of failing silently in Fou
 them in `scripts/rules/auras.mjs` and `scripts/rules/roll-to-bonus.mjs`. Opt a single file in with
 `// @ts-check` on line 1.
 
-`package.json` exists for this dependency only. The module version stays in `module.json`, and CI
-does not run npm.
+The module version stays in `module.json`, never in `package.json`.
 
 `eslint.config.mjs` is flat config on eslint 10. `no-undef` is off because fvtt-types covers the
 globals. `no-useless-assignment` is off because the `let x = null; try { x = ... } catch { return
 null; }` idiom in `expire-effects.mjs` and `source-named-effects.mjs` reads as a dead store to it.
-`npm run lint` is clean; `npm test` runs the same 107 tests CI does.
+`npm run lint` is clean over 23 files; `npm test` runs the same 107 tests CI does. CI runs both,
+after `npm ci`, so neither depends on being remembered.
+
+Handed a directory, eslint 10 reads every file the flat config does not ignore. Count what a run
+examined before reading a low finding count as a clean codebase: `npx eslint . -f json` and count
+the `filePath` entries.
+
+## The effects panel and its column
+
+`#ui-right-column-1` is a flex column with `overflow: visible` and no scrolling of its own, and
+`#chat-notifications` inside it is `flex: 1 1 0%`, so it only gets the height the panel leaves.
+Anything prepended there needs its own cap and its own scrollbar or it eats the chat log and then
+runs off the bottom of the screen. Measured in 14.365 at a 1369px window height before the cap
+existed: 20 icons took the chat from 825px to 505px, 30 left it 105px, 40 removed it and put 257px
+of icons below the screen.
