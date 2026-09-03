@@ -283,6 +283,8 @@ A setting switches the panel back to listing everything active, permanent featur
 
 Inside `#ui-right-column-1`, the flex column that already holds chat notifications. That means it sits left of the sidebar and follows the sidebar being collapsed on its own, rather than this rule having to know the sidebar's width or watch for it changing.
 
+Sharing that column means the panel's height comes out of the chat log's, so it stops at half the window and scrolls beyond that. A token carrying more effects than fit gets a scrollbar rather than a chat log squeezed down to nothing.
+
 ### What the cross will not do for you
 
 | Kind of effect | The cross does |

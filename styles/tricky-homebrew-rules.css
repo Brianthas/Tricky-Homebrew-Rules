@@ -174,7 +174,16 @@
    Sits in the same flex column as chat notifications so it tracks the sidebar being collapsed on
    its own. The backdrop is mostly opaque on purpose: Foundry's faded panel style reads nicely over
    artwork but leaves icons hard to pick out, and a status readout you have to squint at is one you
-   stop checking. */
+   stop checking.
+
+   Capped at half the window and scrolled beyond that. `#ui-right-column-1` is a flex column with
+   no overflow of its own, and `#chat-notifications` is `flex: 1 1 0%`, so it only gets the space
+   the panel leaves. Measured in 14.365 at a window height of 1369px, uncapped: 20 icons cut the
+   chat log from 825px to 505px, 30 left it a 105px sliver, and 40 removed it entirely and put
+   257px of icons below the bottom of the screen with no scrollbar anywhere to reach them.
+   `min-height: 0` because a flex child will not shrink below its content without it, and
+   `scrollbar-gutter: stable` because the panel is `width: fit-content` around a 36px icon, so a
+   scrollbar taking width from the content box would shrink the icons instead. */
 #tricky-effects-panel {
   display: flex;
   flex-direction: column;
@@ -182,6 +191,10 @@
   align-self: flex-end;
   gap: 4px;
   width: fit-content;
+  min-height: 0;
+  max-height: 50vh;
+  overflow: hidden auto;
+  scrollbar-gutter: stable;
   margin-bottom: 0.5rem;
   padding: 6px;
   border: 1px solid var(--color-border-dark, #1c1c1c);

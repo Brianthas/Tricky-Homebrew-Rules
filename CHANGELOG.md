@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.18.1
+
+- **The effects panel no longer squeezes the chat log off the screen.** It shared a flex column with chat notifications and had no height limit of its own, so every icon it added took height from the chat. Measured at a 1369px window: 20 effects cut the chat log from 825px to 505px, 30 left it a 105px sliver, and 40 removed it entirely and put 257px of icons below the bottom of the screen, with no scrollbar anywhere to reach them. The panel is now capped at half the window height and scrolls past that, so the chat keeps its space and every icon stays reachable. Nothing changes for a token carrying few enough effects to fit.
+- CI runs `npm run lint` and checks the syntax of `test/` and `tools/` as well as `scripts/`. Both were only ever run by hand before.
+
 ## 0.18.0
 
 - **Difficult terrain can reach overhead.** 0.17.1 made it ground level only, which is right for Conjure Minor Elementals - it makes *the ground* in its emanation difficult, so a flying enemy is not on it - and wrong for anything that fills a volume. **Terrain reaches overhead** extends the region the full radius up and down as well as sideways, so a creature flying through is slowed too. Off by default, and greyed out until Difficult terrain is on.
