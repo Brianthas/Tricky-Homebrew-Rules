@@ -5,7 +5,7 @@ import { installStubs, fakeEffect, registerUuid, setSetting } from "./stubs.mjs"
 installStubs();
 
 const { isExpired } = await import("../scripts/rules/expire-effects.mjs");
-const { formatBonus } = await import("../scripts/rules/roll-to-bonus.mjs");
+const { formatBonus, shouldOfferBonus } = await import("../scripts/rules/roll-to-bonus.mjs");
 const { nameFromItem } = await import("../scripts/rules/source-named-effects.mjs");
 const { isRunning } = await import("../scripts/rules/effects-panel.mjs");
 const { appliesToCasterOnly } = await import("../scripts/rules/self-effects.mjs");
@@ -64,6 +64,69 @@ describe("formatBonus", () => {
   test("concatenating onto an existing formula stays valid", () => {
     assert.equal(`1d4${formatBonus(3)}`, "1d4 + 3");
     assert.equal(`1d4${formatBonus(-3)}`, "1d4 - 3");
+  });
+});
+
+describe("shouldOfferBonus", () => {
+  /**
+   * A chat card carrying only the two flags the decision reads.
+   *
+   * @param {string|null} rollType  `flags.dnd5e.roll.type`.
+   * @param {string|null} itemType  `flags.dnd5e.item.type`.
+   * @returns {object}
+   */
+  function card(rollType, itemType) {
+    const flags = { dnd5e: { roll: rollType ? { type: rollType } : undefined, item: itemType ? { type: itemType } : undefined } };
+    return { getFlag: (scope, key) => flags[scope]?.[key] };
+  }
+
+  test("a feature's utility roll is offered", () => {
+    // The case the rule exists for: Bardic Inspiration and friends roll as "generic" from a feat.
+    // If this ever fails the exclusions below have eaten the feature rather than trimmed it.
+    assert.equal(shouldOfferBonus(card("generic", "feat")), true);
+    assert.equal(shouldOfferBonus(card("generic", "spell")), true);
+  });
+
+  test("attack and damage rolls are refused whatever produced them", () => {
+    // Both were offered before: a spell's damage roll passed every check under the default scope,
+    // and both passed under "Every roll", which returned true before reading the roll type at all.
+    assert.equal(shouldOfferBonus(card("attack", "spell")), false);
+    assert.equal(shouldOfferBonus(card("damage", "spell")), false);
+    assert.equal(shouldOfferBonus(card("damage", "feat")), false);
+    assert.equal(shouldOfferBonus(card("damage", "weapon")), false);
+  });
+
+  test("a healing roll keeps the button", () => {
+    // A heal activity rolls through the damage machinery but overrides the flag to "healing" before
+    // the message is made, so excluding damage does not take healing with it. Read off a live
+    // Second Wind card on dnd5e 5.3.3, not off the exclusion list.
+    assert.equal(shouldOfferBonus(card("healing", "feat")), true);
+    assert.equal(shouldOfferBonus(card("healing", "spell")), true);
+  });
+
+  test("a bare check or save has no item and is refused", () => {
+    assert.equal(shouldOfferBonus(card("generic", null)), false);
+    assert.equal(shouldOfferBonus(card(null, null)), false);
+  });
+
+  test("scope widens which items qualify, and never which roll types do", () => {
+    const restore = setSetting("rollToBonusScope", "allItems");
+    assert.equal(shouldOfferBonus(card("generic", "weapon")), true);
+    assert.equal(shouldOfferBonus(card("damage", "weapon")), false);
+    restore();
+
+    // "Every roll" still means every roll that could be a bonus. It skips the item check, not the
+    // roll type check.
+    const restoreAll = setSetting("rollToBonusScope", "everything");
+    assert.equal(shouldOfferBonus(card("generic", null)), true);
+    assert.equal(shouldOfferBonus(card("attack", "weapon")), false);
+    assert.equal(shouldOfferBonus(card("damage", "weapon")), false);
+    restoreAll();
+  });
+
+  test("the default scope keeps the button on features and spells only", () => {
+    assert.equal(shouldOfferBonus(card("generic", "weapon")), false);
+    assert.equal(shouldOfferBonus(card("generic", "consumable")), false);
   });
 });
 

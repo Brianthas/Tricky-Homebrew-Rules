@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.18.2
+
+- **Damage rolls no longer get an Apply as bonus button.** A damage number is a result, the same as a to-hit number, and attack rolls were already left out for that reason. A spell's or feature's damage roll passed every other check, so the button appeared on it under the default setting.
+- **The exclusion is read before the Where The Button Appears setting, not after.** Under **Every roll** the old order returned early and offered the button on attack rolls too, which the setting's own hint said never happened. Attack and damage are now refused at every scope, and the setting still decides which items qualify.
+- Healing rolls keep the button. A heal activity rolls through the same damage machinery but flags its message `healing`, checked against a Second Wind card on dnd5e 5.3.3.
+
 ## 0.18.1
 
 - **The effects panel no longer squeezes the chat log off the screen.** It shared a flex column with chat notifications and had no height limit of its own, so every icon it added took height from the chat. Measured at a 1369px window: 20 effects cut the chat log from 825px to 505px, 30 left it a 105px sliver, and 40 removed it entirely and put 257px of icons below the bottom of the screen, with no scrollbar anywhere to reach them. The panel is now capped at half the window height and scrolls past that, so the chat keeps its space and every icon stays reachable. Nothing changes for a token carrying few enough effects to fit.

@@ -60,7 +60,7 @@
   "THR.Rules.ExpireEffects.Mode.Delete": "Delete it",
   "THR.Rules.ExpireEffects.Mode.Disable": "Disable it, but leave it there",
   "THR.Rules.RollToBonus.Scope.Name": "Roll to Bonus: Where The Button Appears",
-  "THR.Rules.RollToBonus.Scope.Hint": "Which chat cards get an Apply as bonus button. Attack rolls never do, since a to-hit number is not a bonus anyone hands out. Bare skill checks and saving throws never do either, because they come from no item.",
+  "THR.Rules.RollToBonus.Scope.Hint": "Which chat cards get an Apply as bonus button. Attack and damage rolls never do, since a to-hit number and a damage number are results, not bonuses anyone hands out. Healing rolls still do. Bare skill checks and saving throws never do either, because they come from no item.",
   "THR.Rules.RollToBonus.Scope.FeaturesAndSpells": "Features and spells only",
   "THR.Rules.RollToBonus.Scope.AllItems": "Any roll from an item",
   "THR.Rules.RollToBonus.Scope.Everything": "Every roll",

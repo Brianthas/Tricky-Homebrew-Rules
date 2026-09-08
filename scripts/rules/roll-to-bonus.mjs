@@ -205,15 +205,24 @@ function onRenderChatMessage(message, html) {
  * - `flags.dnd5e.item.type` is the type of the item that produced the card. A bare skill check or
  *   saving throw has no item at all, which is what excludes them.
  *
+ * Attack and damage rolls are refused ahead of the scope setting, so "Every roll" means every roll
+ * that could be a bonus rather than literally every card.
+ *
+ * Healing is not caught by this. A heal activity rolls through the same `rollDamage` machinery, but
+ * overrides the flag to "healing" before the message is made, so it keeps the button. Confirmed on
+ * dnd5e 5.3.3 against a Second Wind card, which came through as `roll.type` "healing".
+ *
  * @param {object} message
  * @returns {boolean}
  */
-function shouldOfferBonus(message) {
+export function shouldOfferBonus(message) {
+  // A to-hit number and a damage number are both results, never the bonus being handed out. True
+  // whatever item produced them, so neither depends on the scope setting.
+  const rollType = message.getFlag("dnd5e", "roll")?.type;
+  if ((rollType === "attack") || (rollType === "damage")) return false;
+
   const scope = game.settings.get(MODULE_ID, "rollToBonusScope") ?? "featuresAndSpells";
   if (scope === "everything") return true;
-
-  // An attack roll is a to-hit number. Even from a spell, it is never the bonus being handed out.
-  if (message.getFlag("dnd5e", "roll")?.type === "attack") return false;
 
   const itemType = message.getFlag("dnd5e", "item")?.type ?? message.getAssociatedItem?.()?.type;
   if (!itemType) return false;
