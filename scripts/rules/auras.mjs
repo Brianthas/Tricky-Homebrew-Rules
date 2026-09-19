@@ -13,6 +13,13 @@ const AURA = "aura";
 /** Flag on an applied child effect, holding the uuid of the source effect that produced it. */
 const FROM_AURA = "fromAura";
 
+/**
+ * Operation options for creating and deleting child effects. Foundry's `ActiveEffect#_onCreate`
+ * and `_onDelete` float "+(name)" or "-(name)" over the token unless `animate` is false, and a
+ * token walking through an aura would get one on every step across its edge.
+ */
+const SILENT = { animate: false };
+
 /** Flag on a Region this rule owns, holding the uuid of the aura effect it belongs to. */
 const FROM_AURA_REGION = "fromAuraRegion";
 
@@ -887,14 +894,14 @@ async function applyDifference(tokens, desired) {
         // list and acting on it a child can already be gone, and asking Foundry to delete a document
         // that no longer exists throws.
         const ids = stale.map(effect => effect.id).filter(id => actor.effects.has(id));
-        if (ids.length) await actor.deleteEmbeddedDocuments("ActiveEffect", ids);
+        if (ids.length) await actor.deleteEmbeddedDocuments("ActiveEffect", ids, SILENT);
       }
       if (refreshed.length) {
         await actor.updateEmbeddedDocuments("ActiveEffect", refreshed);
       }
       if (missing.length) {
         const data = missing.map(uuid => childData(uuid)).filter(Boolean);
-        if (data.length) await actor.createEmbeddedDocuments("ActiveEffect", data);
+        if (data.length) await actor.createEmbeddedDocuments("ActiveEffect", data, SILENT);
       }
     } catch (err) {
       console.error(`${MODULE_ID} | Failed to update auras on "${actor.name}".`, err);

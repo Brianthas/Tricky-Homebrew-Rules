@@ -1,5 +1,9 @@
 # Changelog
 
+## Unreleased
+
+- **Auras no longer float "+(name)" and "-(name)" text over tokens.** Foundry draws that text whenever an effect is created or deleted, and an aura does one or the other each time a token crosses its edge. The copies are now created and deleted with `animate: false`, which is the option Foundry's own `ActiveEffect#_onCreate` and `_onDelete` check. The token icon and the effects panel still show the copy. Turning the aura's own effect on or off still floats its text, since that is a deliberate action on a real effect.
+
 ## 0.18.2
 
 - **Damage rolls no longer get an Apply as bonus button.** A damage number is a result, the same as a to-hit number, and attack rolls were already left out for that reason. A spell's or feature's damage roll passed every other check, so the button appeared on it under the default setting.
