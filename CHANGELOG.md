@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased
+## 1.0.1
 
 dnd5e 6's 2024 Aura of Life places an area whose Apply Active Effect behavior gives each ally inside it a fresh copy of the spell's effect. Three rules misread those copies. Measured on Foundry 14.368 with dnd5e 6.0.4, casting a copy of the spell added from the compendium after the update.
 
