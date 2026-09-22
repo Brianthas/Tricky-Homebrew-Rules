@@ -143,7 +143,12 @@ export const rollToBonus = {
   },
 
   registerPatches() {
-    Hooks.on("renderChatMessageHTML", onRenderChatMessage);
+    // dnd5e's own hook, not core's `renderChatMessageHTML`. Core fires that one inside
+    // `super.renderHTML`, and dnd5e then runs its typed message's `getHTML` after it, which on
+    // dnd5e 6 rebuilds the roll markup and drops anything appended earlier (checked 6.0.4,
+    // `ChatMessage5e#renderHTML`). `dnd5e.renderChatMessage` fires at the end of that method on
+    // 5.3.3 and 6.0.4 alike.
+    Hooks.on("dnd5e.renderChatMessage", onRenderChatMessage);
 
     // Nothing on a stock Foundry 14 plus dnd5e install expires an Active Effect. dnd5e has no expiry
     // handling and does not listen for turn changes; Foundry marks an effect expired but neither
@@ -200,31 +205,38 @@ function onRenderChatMessage(message, html) {
  *
  * Two signals, both recorded by dnd5e on the message itself, so nothing has to be resolved:
  *
- * - `flags.dnd5e.roll.type` is "attack", "damage", "generic", "hitDie" or "hitPoints". A feature's
+ * - The roll type: "attack", "damage", "generic", "healing", "hitDie" or "hitPoints". A feature's
  *   utility roll, which is what Bardic Inspiration and friends are, comes through as "generic".
- * - `flags.dnd5e.item.type` is the type of the item that produced the card. A bare skill check or
- *   saving throw has no item at all, which is what excludes them.
+ *   dnd5e 5.x stores it as `flags.dnd5e.roll.type`; dnd5e 6 makes it the message's own `type`
+ *   (typed chat messages, `CONFIG.ChatMessage.dataModels`) and its migration deletes the flag.
+ * - The type of the item that produced the card. 5.x stores it as `flags.dnd5e.item.type`, 6 as
+ *   `system.item.type`; `getAssociatedItem()` resolves it on both. A bare skill check or saving
+ *   throw has no item at all, which is what excludes them.
  *
  * Attack and damage rolls are refused ahead of the scope setting, so "Every roll" means every roll
  * that could be a bonus rather than literally every card.
  *
  * Healing is not caught by this. A heal activity rolls through the same `rollDamage` machinery, but
- * overrides the flag to "healing" before the message is made, so it keeps the button. Confirmed on
- * dnd5e 5.3.3 against a Second Wind card, which came through as `roll.type` "healing".
+ * records the roll as "healing" before the message is made, so it keeps the button. Confirmed on
+ * dnd5e 5.3.3 against a Second Wind card (`roll.type` "healing") and on 6.0.4 (`type` "healing").
  *
  * @param {object} message
  * @returns {boolean}
  */
 export function shouldOfferBonus(message) {
   // A to-hit number and a damage number are both results, never the bonus being handed out. True
-  // whatever item produced them, so neither depends on the scope setting.
-  const rollType = message.getFlag("dnd5e", "roll")?.type;
+  // whatever item produced them, so neither depends on the scope setting. On dnd5e 5.x every
+  // message's `type` is core's "base", so the flag is read first and the type only stands in when
+  // the flag is absent.
+  const rollType = message.getFlag("dnd5e", "roll")?.type ?? message.type;
   if ((rollType === "attack") || (rollType === "damage")) return false;
 
   const scope = game.settings.get(MODULE_ID, "rollToBonusScope") ?? "featuresAndSpells";
   if (scope === "everything") return true;
 
-  const itemType = message.getFlag("dnd5e", "item")?.type ?? message.getAssociatedItem?.()?.type;
+  const itemType = message.getFlag("dnd5e", "item")?.type
+    ?? message.system?.item?.type
+    ?? message.getAssociatedItem?.()?.type;
   if (!itemType) return false;
 
   if (scope === "allItems") return true;

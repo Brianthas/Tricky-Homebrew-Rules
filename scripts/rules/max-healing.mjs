@@ -62,8 +62,10 @@ export const maxHealing = {
     });
 
     // A maximized roll otherwise looks identical to one that genuinely rolled its maximum, which
-    // makes it impossible to tell the difference after the fact.
-    Hooks.on("renderChatMessageHTML", onRenderChatMessage);
+    // makes it impossible to tell the difference after the fact. dnd5e's hook rather than core's
+    // `renderChatMessageHTML`: dnd5e rewrites a typed message's markup after core's hook has fired,
+    // and `dnd5e.renderChatMessage` runs after that rewrite (see roll-to-bonus.mjs).
+    Hooks.on("dnd5e.renderChatMessage", onRenderChatMessage);
   }
 };
 

@@ -1,5 +1,11 @@
 # Changelog
 
+## Unreleased
+
+- **Apply as bonus is back on dnd5e 6.** dnd5e 6 stores its chat cards as typed messages and rebuilds the roll markup after core's `renderChatMessageHTML` hook has run, which discarded the button. The button and the Maximized banner are now added on `dnd5e.renderChatMessage`, which fires after that rebuild on 5.3.3 and 6.0.4 alike.
+- **Attack and damage cards stay excluded on dnd5e 6.** The roll type moved from `flags.dnd5e.roll.type` to the message's own `type` and dnd5e 6's migration deletes the flag, so the exclusion read nothing. The message type is read when the flag is absent.
+- Verified on Foundry 14.368 with dnd5e 6.0.4: Critical Dice, Max Healing, Roll to Bonus (including turn-based expiry), Effect Names, Expire Effects, Effects Panel, Self Effects and Auras (entry, the 10 ft edge, and exit), each driven through dnd5e's own UI or roll pipeline on the live client.
+
 ## 0.18.3
 
 - **Auras no longer float "+(name)" and "-(name)" text over tokens.** Foundry draws that text whenever an effect is created or deleted, and an aura does one or the other each time a token crosses its edge. The copies are now created and deleted with `animate: false`, which is the option Foundry's own `ActiveEffect#_onCreate` and `_onDelete` check. The token icon and the effects panel still show the copy. Turning the aura's own effect on or off still floats its text, since that is a deliberate action on a real effect.

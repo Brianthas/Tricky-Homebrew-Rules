@@ -69,7 +69,8 @@ describe("formatBonus", () => {
 
 describe("shouldOfferBonus", () => {
   /**
-   * A chat card carrying only the two flags the decision reads.
+   * A chat card as dnd5e 5.x writes it: the roll type and item type under `flags.dnd5e`, and core's
+   * "base" as the message type.
    *
    * @param {string|null} rollType  `flags.dnd5e.roll.type`.
    * @param {string|null} itemType  `flags.dnd5e.item.type`.
@@ -77,7 +78,24 @@ describe("shouldOfferBonus", () => {
    */
   function card(rollType, itemType) {
     const flags = { dnd5e: { roll: rollType ? { type: rollType } : undefined, item: itemType ? { type: itemType } : undefined } };
-    return { getFlag: (scope, key) => flags[scope]?.[key] };
+    return { type: "base", getFlag: (scope, key) => flags[scope]?.[key] };
+  }
+
+  /**
+   * The same card as dnd5e 6 writes it: no `flags.dnd5e` at all, the roll type as the message's own
+   * `type` and the item under `system.item`. Read off a live Bardic Inspiration card on 6.0.4.
+   *
+   * @param {string} rollType  Message `type`.
+   * @param {string|null} itemType  `system.item.type`.
+   * @returns {object}
+   */
+  function card6(rollType, itemType) {
+    return {
+      type: rollType,
+      system: itemType ? { item: { type: itemType } } : {},
+      getFlag: () => undefined,
+      getAssociatedItem: () => (itemType ? { type: itemType } : null)
+    };
   }
 
   test("a feature's utility roll is offered", () => {
@@ -127,6 +145,21 @@ describe("shouldOfferBonus", () => {
   test("the default scope keeps the button on features and spells only", () => {
     assert.equal(shouldOfferBonus(card("generic", "weapon")), false);
     assert.equal(shouldOfferBonus(card("generic", "consumable")), false);
+  });
+
+  test("dnd5e 6 typed messages get the same answers without any flag", () => {
+    // 6.0.4 deletes `flags.dnd5e.roll` in migration and makes the roll type the message type. Before
+    // the type fallback, an attack card on 6 passed the exclusion because the flag read undefined.
+    assert.equal(shouldOfferBonus(card6("generic", "feat")), true);
+    assert.equal(shouldOfferBonus(card6("healing", "spell")), true);
+    assert.equal(shouldOfferBonus(card6("attack", "spell")), false);
+    assert.equal(shouldOfferBonus(card6("damage", "weapon")), false);
+    assert.equal(shouldOfferBonus(card6("check", null)), false);
+
+    const restore = setSetting("rollToBonusScope", "everything");
+    assert.equal(shouldOfferBonus(card6("check", null)), true);
+    assert.equal(shouldOfferBonus(card6("attack", "weapon")), false);
+    restore();
   });
 });
 

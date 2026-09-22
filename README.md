@@ -489,7 +489,7 @@ Per aura, on the effect itself: radius, reaches (anyone, allies, enemies), affec
 ## Requirements
 
 - Foundry VTT v13 or v14
-- dnd5e system 4.0.0+ (verified against 5.3.3)
+- dnd5e system 4.0.0+ (verified against 5.3.3 on Foundry 13 and 6.0.4 on Foundry 14)
 - [libWrapper](https://github.com/ruipin/fvtt-lib-wrapper)
 
 ## Tests
