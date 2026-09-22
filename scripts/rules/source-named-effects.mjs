@@ -61,7 +61,7 @@ function onPreCreateActiveEffect(effect, data) {
   try {
     if (!isRuleEnabled(RULE_ID)) return;
 
-    const name = sourceNameFor(effect, data?.origin ?? effect.origin);
+    const name = sourceNameFor(effect, sourceOriginFor(effect, data?.origin));
     if (name) effect.updateSource({ name });
   } catch (err) {
     console.error(`${MODULE_ID} | Failed to rename an effect after its source.`, err);
@@ -136,6 +136,23 @@ export function nameFromItem(effect, item) {
 }
 
 /**
+ * The uuid to resolve an effect's source item from.
+ *
+ * dnd5e 6 records the item behind an effect in `system.origin.item`, beside the activity, effect or
+ * region behavior it arrived through, and derives `origin` from those with the behavior ranked
+ * above the item. An effect applied by an area's Apply Active Effect behavior (the 2024 Aura of
+ * Life) therefore has the RegionBehavior as its origin, so the recorded item is read first. dnd5e 5
+ * has no `system.origin` and falls through to the plain origin.
+ *
+ * @param {object} effect
+ * @param {string} [origin]  The origin from creation data, when there is one.
+ * @returns {string|null}
+ */
+export function sourceOriginFor(effect, origin) {
+  return effect?.system?.origin?.item ?? origin ?? effect?.origin ?? null;
+}
+
+/**
  * Resolve an effect origin to the item that produced it.
  *
  * dnd5e sets origin to either an item UUID or an activity UUID depending on what applied the
@@ -170,8 +187,9 @@ export function resolveSourceItem(origin) {
   }
 
   // Compendium origins resolve to a plain index entry rather than a document. It still carries the
-  // name, which is all this needs.
-  if (typeof doc.name === "string") return doc;
+  // name, which is all this needs. Any real document reaching this line is not an item: a
+  // RegionBehavior with no stored name reports its type label, "Apply Active Effect (5e)".
+  if (!doc.documentName && (typeof doc.name === "string")) return doc;
 
   return null;
 }
@@ -230,7 +248,7 @@ export async function renameExistingEffects() {
     try {
       const updates = [];
       for (const effect of actor.effects) {
-        const name = sourceNameFor(effect, effect.origin);
+        const name = sourceNameFor(effect, sourceOriginFor(effect));
         if (name) updates.push({ _id: effect.id, name });
       }
       if (updates.length) {
@@ -244,7 +262,7 @@ export async function renameExistingEffects() {
       for (const item of actor.items) {
         const itemUpdates = [];
         for (const effect of item.effects) {
-          const name = sourceNameFor(effect, effect.origin);
+          const name = sourceNameFor(effect, sourceOriginFor(effect));
           if (name) itemUpdates.push({ _id: effect.id, name });
         }
         if (itemUpdates.length) {

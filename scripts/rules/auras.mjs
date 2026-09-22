@@ -3,7 +3,7 @@ import { registerLibWrapper } from "../lib/wrapper.mjs";
 import { isRuleEnabled, ruleEnabledKey } from "../lib/settings.mjs";
 import { allActors } from "../lib/actors.mjs";
 import { knownAuraFor } from "./known-auras.mjs";
-import { resolveSourceItem } from "./source-named-effects.mjs";
+import { resolveSourceItem, sourceOriginFor } from "./source-named-effects.mjs";
 
 const RULE_ID = "auras";
 
@@ -504,6 +504,11 @@ export function auraSeedFor(effect, origin) {
   // of its own, radiating from every recipient.
   if (effect.getFlag?.(MODULE_ID, FROM_AURA)) return null;
 
+  // Applied by a region's Apply Active Effect behavior, as dnd5e 6's 2024 Aura of Life is. The
+  // region already gives the effect to everyone inside it, so seeding each copy made every
+  // recipient a second source radiating it again.
+  if (effect.system?.origin?.behavior) return null;
+
   // The concentration marker is not the spell's effect, but it names the spell as its origin
   // (dnd5e's `ActiveEffect5e.createConcentrationEffectData` sets `origin: item.uuid`), so the match
   // on the source item's name below finds it. Seeding it would give one cast two auras, and write
@@ -532,7 +537,7 @@ export function auraSeedFor(effect, origin) {
  */
 function sourceItemNameFor(effect, origin) {
   if (effect?.parent?.documentName === "Item") return effect.parent.name ?? null;
-  return resolveSourceItem(origin ?? effect?.origin)?.name ?? null;
+  return resolveSourceItem(sourceOriginFor(effect, origin))?.name ?? null;
 }
 
 /**

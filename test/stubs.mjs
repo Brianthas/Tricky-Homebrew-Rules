@@ -67,6 +67,7 @@ export function fakeEffect(data = {}) {
     statuses: new Set(data.statuses ?? []),
     parent: data.parent ?? null,
     origin: data.origin ?? null,
+    system: data.system ?? {},
     flags,
     getFlag: (scope, key) => flags?.[scope]?.[key]
   };

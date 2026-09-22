@@ -72,7 +72,7 @@ All world-scoped (GM-controlled).
 
 ### A note on "Maximize Critical Damage"
 
-dnd5e has its own optional **Maximize Critical Damage** setting (Powerful Critical), which maximizes the base damage dice and reduces the crit multiplier to 1. That leaves far fewer *rolled* dice for this rule to work with, and the two stack into something neither of them describes.
+dnd5e has its own optional **Maximize Critical Damage** setting (Powerful Critical). On dnd5e 6 it rolls the base dice as normal and replaces the extra crit dice with their maximum as a flat bonus. That leaves half as many *rolled* dice for this rule to work with, and the two stack into something neither of them describes.
 
 If it's enabled, the module logs a warning to the console (F12) rather than silently fighting it. Pick one or the other unless you specifically want both.
 
@@ -171,9 +171,7 @@ Outside combat there is nothing for a turn-based duration to count from, so the 
 
 ### It expires its own effects, and it has to
 
-Nothing on a stock Foundry 14 and dnd5e install removes an expired Active Effect. dnd5e has no expiry handling and does not listen for turn changes. Foundry marks an effect as expired but neither deletes nor disables it, so the bonus would keep applying forever.
-
-The modules that normally solve this, Times-Up and DAE, both stop at Foundry `13.999`. So this rule runs its own expiry off `combatTurnChange`, and only the active GM performs the deletions so several clients cannot race to remove the same effect.
+Foundry 14 switches an expired effect off but leaves it on the actor, and dnd5e 6 deletes expired effects only when a combatant leaves combat. So this rule runs its own expiry off `combatTurnChange`, and only the active GM performs the deletions so several clients cannot race to remove the same effect.
 
 ### A note on how the bonus is written
 
@@ -229,7 +227,7 @@ They never pass through effect creation, since they arrive as part of the item, 
 
 Removes Active Effects once their duration has run out.
 
-Nothing on a stock Foundry 14 and dnd5e install does this. Foundry works out that an effect is expired and exposes it as `effect.duration.expired`, but it neither deletes nor disables it, and dnd5e has no expiry handling of its own. The result is that a one round buff keeps applying for the rest of the session. The modules that normally fill this gap, Times-Up and DAE, both stop at Foundry `13.999`.
+Foundry 14 marks an expired effect `duration.expired` and stops applying it, but with its default `expiryAction` of `"update"` the effect stays on the actor. dnd5e 6 deletes expired effects only when a combatant leaves combat. Until then a one round buff sits on the sheet switched off, and on the token as an icon. The modules that used to fill this gap, Times-Up and DAE, both stop at Foundry `13.999`.
 
 The rule checks on turn changes, on world time changes, when a combat ends, and once at startup to catch anything that expired while nobody was watching.
 
@@ -274,8 +272,11 @@ Only things happening **to** the creature, not the permanent kit that makes it w
 | Shield, Bless, spell effects with a countdown | Jack of All Trades, Improved Critical, Remarkable Athlete |
 | Concentration markers | Fighting styles, Draconic Resilience |
 | An aura reaching the token from a spell, like Aura of Life | An aura from a permanent feature, like Aura of Protection |
+| An effect a placed area gives out | |
 
 An aura copy carries no duration of its own, so that test alone would call every one of them permanent. A copy is judged by the aura behind it instead: Aura of Life runs for ten minutes and belongs here, while a paladin's Aura of Protection is a permanent class feature and does not, even though the copy itself comes and goes as people move.
+
+An effect a region behavior applies is always shown. dnd5e 6's 2024 Aura of Life places an area that gives each ally in it a copy of its effect with no duration at all, and it only exists while the token stands in the area.
 
 A setting switches the panel back to listing everything active, permanent features included.
 
@@ -428,7 +429,9 @@ Difficult terrain is a property of the ground, so by default the region occupies
 
 **Terrain reaches overhead** turns that off, extending the region the full radius up and down as well as sideways. Conjure Minor Elementals wants it off, because it makes *the ground* in its emanation difficult. Turn it on for homebrew that fills a volume rather than covering a floor.
 
-Before reaching for it, check whether the spell already carries its own effect. dnd5e's 2024 Spirit Guardians ships a Half Speed effect that multiplies walk, fly, climb, swim and burrow by 0.5, and the aura radiating that effect is the whole automation - adding difficult terrain on top would halve the speed and double the cost at once. Aura of Life, Beacon of Hope and Antilife Shell ship their own effects too.
+Before reaching for it, check whether the spell already carries its own effect. dnd5e's 2024 Spirit Guardians ships a Half Speed effect that multiplies walk, fly, climb, swim and burrow by 0.5, and the aura radiating that effect is the whole automation - adding difficult terrain on top would halve the speed and double the cost at once. Beacon of Hope and Antilife Shell ship their own effects too.
+
+dnd5e 6 rebuilt two of the 2024 spells around placed areas. Conjure Minor Elementals places its own difficult terrain region, and Aura of Life places an area that gives its effect to each ally inside it. A copy of either spell added to an actor before dnd5e 6.0 has no such area; re-add it from the compendium to get it. An effect handed out by an area is never turned into an aura, since the area already does the radiating.
 
 Neither setting cares how a creature moves. Walking, burrowing, climbing and swimming are charged either way, and teleporting never is - that is dnd5e's `TerrainData5e`, not a choice made here. The only thing the option changes is how far up and down the area reaches.
 

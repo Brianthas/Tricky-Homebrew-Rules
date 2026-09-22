@@ -6,7 +6,7 @@ installStubs();
 
 const { isExpired } = await import("../scripts/rules/expire-effects.mjs");
 const { formatBonus, shouldOfferBonus } = await import("../scripts/rules/roll-to-bonus.mjs");
-const { nameFromItem } = await import("../scripts/rules/source-named-effects.mjs");
+const { nameFromItem, resolveSourceItem, sourceOriginFor } = await import("../scripts/rules/source-named-effects.mjs");
 const { isRunning } = await import("../scripts/rules/effects-panel.mjs");
 const { appliesToCasterOnly } = await import("../scripts/rules/self-effects.mjs");
 
@@ -201,6 +201,45 @@ describe("nameFromItem", () => {
   });
 });
 
+describe("source of a region-applied effect", () => {
+  // dnd5e 6's 2024 Aura of Life places a region whose Apply Active Effect behavior gives each ally a
+  // fresh "Aura of Life". dnd5e derives `origin` from `system.origin`, taking the behavior before the
+  // item, so the effect's origin is the RegionBehavior. Its stored name is empty and its `name` is
+  // the type label, and every copy was renamed "Apply Active Effect (5e)". The shape below is the
+  // one read off a live effect on dnd5e 6.0.4.
+  const BEHAVIOR = "Scene.s.Region.r.RegionBehavior.b";
+  const ITEM = "Actor.p.Item.aol";
+  const applied = () => fakeEffect({
+    name: "Aura of Life",
+    origin: BEHAVIOR,
+    system: { origin: { activity: `${ITEM}.Activity.a`, actor: null, behavior: BEHAVIOR, effect: null, item: ITEM, message: null } }
+  });
+
+  test("a region behavior is not taken for the source item", () => {
+    registerUuid(BEHAVIOR, { documentName: "RegionBehavior", name: "Apply Active Effect (5e)" });
+    assert.equal(resolveSourceItem(BEHAVIOR), null);
+  });
+
+  test("a compendium index entry still resolves by its name", () => {
+    // What fromUuidSync returns for an entry whose pack is not loaded: a plain object, no documentName.
+    registerUuid("Compendium.dnd5e.spells24.Item.bless", { _id: "bless", name: "Bless" });
+    assert.equal(resolveSourceItem("Compendium.dnd5e.spells24.Item.bless")?.name, "Bless");
+  });
+
+  test("the item dnd5e recorded is read before the derived origin", () => {
+    registerUuid(ITEM, { documentName: "Item", name: "Aura of Life" });
+    const effect = applied();
+    assert.equal(sourceOriginFor(effect, effect.origin), ITEM);
+    assert.equal(resolveSourceItem(sourceOriginFor(effect, effect.origin))?.name, "Aura of Life");
+  });
+
+  test("without system.origin, as on dnd5e 5, the plain origin is used", () => {
+    const effect = fakeEffect({ name: "Shield", origin: "Actor.p.Item.shield" });
+    assert.equal(sourceOriginFor(effect, effect.origin), "Actor.p.Item.shield");
+    assert.equal(sourceOriginFor(effect), "Actor.p.Item.shield");
+  });
+});
+
 describe("isRunning", () => {
   test("anything Foundry calls temporary is running", () => {
     assert.equal(isRunning(fakeEffect({ isTemporary: true })), true);
@@ -227,6 +266,17 @@ describe("isRunning", () => {
   test("a copy whose aura has vanished is not running", () => {
     const orphan = fakeEffect({ flags: { [MODULE_ID]: { fromAura: "gone" } } });
     assert.equal(isRunning(orphan), false);
+  });
+
+  test("an effect a region behavior applied is running", () => {
+    // dnd5e 6's 2024 Aura of Life copies its compendium effect onto each ally in the area with no
+    // duration (value null, no expiry, read on 6.0.4), so isTemporary is false and the panel hid it
+    // while showing the Concentrating marker beside it.
+    const fromRegion = fakeEffect({
+      name: "Aura of Life",
+      system: { origin: { behavior: "Scene.s.Region.r.RegionBehavior.b", item: "Actor.p.Item.aol" } }
+    });
+    assert.equal(isRunning(fromRegion), true);
   });
 });
 

@@ -11,10 +11,10 @@ const RULE_ID = "expireEffects";
 /**
  * Removes Active Effects once their duration has run out.
  *
- * Nothing on a stock Foundry 14 plus dnd5e install does this. dnd5e has no expiry handling and does
- * not listen for turn changes. Foundry works out that an effect is expired and exposes it as
- * `effect.duration.expired`, but neither deletes nor disables it, so the effect keeps applying
- * forever. The modules that normally fill this gap, Times-Up and DAE, both stop at Foundry 13.999.
+ * Foundry 14's effect registry marks an expired effect `duration.expired`, which `isSuppressed`
+ * reads, so the effect stops applying. With the default `CONFIG.ActiveEffect.expiryAction` of
+ * "update" it stays on the actor. dnd5e 6 deletes expired effects only when a combatant leaves
+ * combat (`Combat5e#_onExit`). This deletes them when their time is up.
  *
  * Concentration is handled the way the rules describe it. dnd5e already puts the concentration
  * effect on the caster and cascades to the targets when it is deleted, so when a concentration

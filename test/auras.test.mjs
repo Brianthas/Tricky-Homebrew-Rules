@@ -288,6 +288,21 @@ describe("auraSeedFor", () => {
     assert.equal(seed.disposition, 1);
   });
 
+  test("an effect a region behavior applied is never seeded", () => {
+    // dnd5e 6's 2024 Aura of Life gives each ally in its region a fresh "Aura of Life". Seeding those
+    // made every recipient a 30 ft source of its own, handing out "(from Bard)" copies to allies the
+    // caster's area never reached. Measured on dnd5e 6.0.4 with Effect Names off.
+    const fromRegion = fakeEffect({
+      name: "Aura of Life",
+      origin: "Scene.s.Region.r.RegionBehavior.b",
+      system: { origin: { behavior: "Scene.s.Region.r.RegionBehavior.b", item: "Actor.p.Item.aol" } }
+    });
+    assert.equal(auraSeedFor(fromRegion, fromRegion.origin), null);
+
+    // The same name applied any other way still seeds.
+    assert.equal(auraSeedFor(fakeEffect({ name: "Aura of Life" }))?.radius, "30");
+  });
+
   test("a scaling formula never reaches the stored config", () => {
     // `scaling` is a table concept the radius has already been resolved from. Carrying it into the
     // flag would let it override that radius on an actor who cannot resolve it.

@@ -1,5 +1,15 @@
 # Changelog
 
+## Unreleased
+
+dnd5e 6's 2024 Aura of Life places an area whose Apply Active Effect behavior gives each ally inside it a fresh copy of the spell's effect. Three rules misread those copies. Measured on Foundry 14.368 with dnd5e 6.0.4, casting a copy of the spell added from the compendium after the update.
+
+- **Effect Names no longer renames them "Apply Active Effect (5e)".** dnd5e 6 derives an effect's `origin` from `system.origin` with the region behavior ranked above the item, and the fallback meant for compendium index entries accepted the behavior as the source item and took its type label. The rule now reads the item dnd5e records in `system.origin.item` first, and the fallback accepts only a plain index entry.
+- **Auras no longer turns every ally in the area into a second source.** Each copy carried the name "Aura of Life", matched the known-auras table and was seeded as a 30 ft aura, so the Bard standing in the area handed a second copy, "Aura of Life (from Bard)", to four allies already holding the area's. An effect a region behavior applied is no longer seeded.
+- **The Effects Panel shows them.** The copies carry no duration, so `isTemporary` is false and the panel hid them beside the Concentrating marker. An effect a region behavior applied now counts as running.
+- The Expire Effects docs and setting hint said Foundry and dnd5e never deal with expired effects. Foundry 14 switches them off and dnd5e 6 deletes them when a combatant leaves combat; the rule's job is deleting them in between.
+- The Critical Dice note on Powerful Critical described it as maximizing the base dice. On dnd5e 6 it rolls the base dice and adds the extra crit dice's maximum as a flat bonus.
+
 ## 1.0.0
 
 Five weeks in a live game across eight rules, with the settings keys and flag layout unchanged since 0.15. The version now says so. No migration: Foundry treats 0.18.3 to 1.0.0 as an ordinary update.

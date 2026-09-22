@@ -95,14 +95,15 @@ export const criticalDice = {
   onReady() {
     if (!isRuleEnabled(RULE_ID)) return;
 
-    // dnd5e's own "Powerful Critical" already maximizes the base damage dice and drops the crit
-    // multiplier to 1, so there are far fewer rolled dice left for this rule to upgrade. The two
+    // dnd5e's own "Powerful Critical" replaces the extra crit dice with their maximum as a flat
+    // number (dnd5e 6.0.4), so half the rolled dice are gone before this rule sees the roll. The two
     // house rules stack into something neither of them describes - warn rather than silently fight it.
     if (game.settings.get("dnd5e", "criticalDamageMaxDice")) {
       console.warn(
         `${MODULE_ID} | dnd5e's "Maximize Critical Damage" (Powerful Critical) setting is enabled. It `
-        + "already maximizes base damage dice on a crit, leaving fewer rolled dice for the Tricky "
-        + "Critical Dice rule to upgrade. Turn one of the two off unless you specifically want both."
+        + "replaces the extra crit dice with their maximum as a flat bonus, leaving fewer rolled dice "
+        + "for the Tricky Critical Dice rule to upgrade. Turn one of the two off unless you "
+        + "specifically want both."
       );
     }
   }

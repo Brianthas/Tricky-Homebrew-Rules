@@ -168,11 +168,16 @@ function listed(actor) {
  * while a paladin's Aura of Protection is a permanent class feature and does not, even though the
  * copy itself comes and goes as people move.
  *
+ * An effect applied by a region behavior is running for as long as the token stands in the area.
+ * dnd5e 6's 2024 Aura of Life copies its effect onto each ally in its area with no duration at all,
+ * so `isTemporary` is false for it.
+ *
  * @param {object} effect
  * @returns {boolean}
  */
 export function isRunning(effect) {
   if (effect.isTemporary) return true;
+  if (effect.system?.origin?.behavior) return true;
 
   const fromAura = effect.getFlag(MODULE_ID, FROM_AURA);
   if (!fromAura) return false;
