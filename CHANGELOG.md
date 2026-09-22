@@ -1,6 +1,8 @@
 # Changelog
 
-## Unreleased
+## 1.0.0
+
+Five weeks in a live game across eight rules, with the settings keys and flag layout unchanged since 0.15. The version now says so. No migration: Foundry treats 0.18.3 to 1.0.0 as an ordinary update.
 
 - **Apply as bonus is back on dnd5e 6.** dnd5e 6 stores its chat cards as typed messages and rebuilds the roll markup after core's `renderChatMessageHTML` hook has run, which discarded the button. The button and the Maximized banner are now added on `dnd5e.renderChatMessage`, which fires after that rebuild on 5.3.3 and 6.0.4 alike.
 - **Attack and damage cards stay excluded on dnd5e 6.** The roll type moved from `flags.dnd5e.roll.type` to the message's own `type` and dnd5e 6's migration deletes the flag, so the exclusion read nothing. The message type is read when the flag is absent.
