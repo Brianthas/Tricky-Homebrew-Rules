@@ -4,15 +4,25 @@ import { installStubs } from "./stubs.mjs";
 
 installStubs();
 
-// Core's parseUuid for absolute UUIDs: a world document is Type.id, a compendium one is
-// Compendium.package.pack.Type.id, and whatever follows is the embedded path. The live client's own
-// parseUuid was run against every link in the test world's invalid items before this was written.
-globalThis.foundry ??= {};
-foundry.utils ??= {};
-foundry.utils.parseUuid ??= uuid => {
-  const parts = uuid.split(".");
-  const primary = parts[0] === "Compendium" ? 5 : 2;
-  return { embedded: parts.slice(primary) };
+// `embedded` as `foundry.utils.parseUuid` returned it for each UUID on the Foundry 14.369 client.
+// A UUID missing from the table throws, so a test cannot pass on an answer nobody recorded.
+const PARSED = {
+  "Actor.Qf69kQz5yhg9frOr.Item.Cw3qlCqMDGnv97eH": ["Item", "Cw3qlCqMDGnv97eH"],
+  "Actor.Qf69kQz5yhg9frOr.Item.aVhSujZJ7eL0FHbu": ["Item", "aVhSujZJ7eL0FHbu"],
+  "Actor.Qf69kQz5yhg9frOr.Item.qf4iWBUqttodhPMJ": ["Item", "qf4iWBUqttodhPMJ"],
+  "Actor.SVtLstUzhbopbXR9.Item.bzWsfevJ8dssm3wc": ["Item", "bzWsfevJ8dssm3wc"],
+  "Compendium.dnd5e.classes24.Item.phbsrcFontOfMagi": [],
+  "Compendium.dnd5e.classes24.Item.phbsrcSorcerousR": [],
+  "Compendium.dnd5e.spells24.Item.phbsplShield0000.ActiveEffect.Bv3EoHGfYCprLdG1": ["ActiveEffect", "Bv3EoHGfYCprLdG1"],
+  "Item.Cw3qlCqMDGnv97eH": []
+};
+globalThis.foundry = {
+  utils: {
+    parseUuid: uuid => {
+      if (!(uuid in PARSED)) throw new Error(`No recorded parseUuid result for ${uuid}`);
+      return { embedded: PARSED[uuid] };
+    }
+  }
 };
 
 const { isEmbeddedUuid, repairsFor } = await import("../scripts/rules/repair-imported-items.mjs");
@@ -57,6 +67,10 @@ describe("isEmbeddedUuid", () => {
     assert.equal(isEmbeddedUuid("Actor.Qf69kQz5yhg9frOr.Item.Cw3qlCqMDGnv97eH"), true);
   });
 
+  test("a link inside a compendium document is embedded too", () => {
+    assert.equal(isEmbeddedUuid("Compendium.dnd5e.spells24.Item.phbsplShield0000.ActiveEffect.Bv3EoHGfYCprLdG1"), true);
+  });
+
   test("a compendium item and a world item are not", () => {
     assert.equal(isEmbeddedUuid("Compendium.dnd5e.classes24.Item.phbsrcFontOfMagi"), false);
     assert.equal(isEmbeddedUuid("Item.Cw3qlCqMDGnv97eH"), false);
@@ -88,6 +102,15 @@ describe("repairsFor", () => {
   test("leaves what dnd5e granted alone", () => {
     const { changes } = repairsFor(importedSorcerer());
     assert.ok(!Object.keys(changes).some(path => path.includes("value")));
+  });
+
+  test("an entry stored as a bare string is judged the same way", () => {
+    const { changes, removed } = repairsFor({ system: { advancement: { a: { type: "ItemGrant", configuration: { items: [
+      "Actor.SVtLstUzhbopbXR9.Item.bzWsfevJ8dssm3wc",
+      "Compendium.dnd5e.classes24.Item.phbsrcSorcerousR"
+    ] } } } } });
+    assert.equal(removed, 1);
+    assert.deepEqual(changes["system.advancement.a.configuration.items"], ["Compendium.dnd5e.classes24.Item.phbsrcSorcerousR"]);
   });
 
   test("a valid item needs nothing", () => {

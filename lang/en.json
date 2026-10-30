@@ -166,7 +166,7 @@
   "THR.Groups.repairImportedItems": "Repair Imported Items",
   "THR.Rules.RepairImportedItems.Name": "Repair Imported Items",
   "THR.Rules.RepairImportedItems.Label": "Repair Imported Items",
-  "THR.Rules.RepairImportedItems.Hint": "dnd5e 6 refuses to load a class, subclass, species or background whose granted features are listed as links to the character's own items, which some importers write. The item disappears from the sheet, and a character can lose a whole class. This removes those links. The granted features stay on the character. It lists what it will change and asks first, and only touches characters you own.",
+  "THR.Rules.RepairImportedItems.Hint": "dnd5e 6 refuses to load a class, subclass, species or background whose granted features are listed as links to the character's own items, which some importers write. The item disappears from the sheet, and a character can lose a whole class. This removes those links and asks first. It only touches characters you own.",
   "THR.Rules.RepairImportedItems.Confirm": "These items fail to load because they list the character's own features as the things they grant. Removing those links lets them load again. The features themselves stay on the character.",
   "THR.Rules.RepairImportedItems.Line": "{item} on {actor}: {count} link(s) removed",
   "THR.Rules.RepairImportedItems.Nothing": "No items on characters you own need repairing.",

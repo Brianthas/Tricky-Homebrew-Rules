@@ -500,7 +500,7 @@ A button in the module settings, not a rule, so it has no switch.
 
 dnd5e 6 refuses to load a class, subclass, species or background whose Item Grant advancement lists the character's own items as the things it grants. Some importers write exactly that: the Sorcerer class lists the character's own copy of Font of Magic rather than the compendium one. dnd5e 5 accepted it. On dnd5e 6 the item fails validation, disappears from the sheet, and a character can lose a whole class.
 
-The button removes those links. Each points at a feature already on the character, or at nothing, so neither is something the advancement could grant. The features stay on the character, and the record dnd5e keeps of what it granted, which it uses to remove features on a level-down, is untouched.
+The button removes every link that points inside another document, which is what dnd5e 6 rejects there. In the imported items this was built against, each pointed at a feature already on the character or at an item that no longer existed. The features stay on the character, and the record dnd5e keeps of what it granted, which it uses to remove features on a level-down, is untouched.
 
 It lists every item and how many links it removes, and asks first. Anyone can run it, and it only touches characters they own, so a player can repair their own character without the GM. It covers world actors; an unlinked token keeps its own copy of its items and is not covered.
 

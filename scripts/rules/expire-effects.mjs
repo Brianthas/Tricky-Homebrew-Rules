@@ -217,10 +217,9 @@ async function removeConcentrationAreas(effect) {
  * forces the derived value false for an effect that is not temporary, and for a timed effect with
  * time left after the clock is wound back.
  *
- * An earlier version required a numeric countdown (`seconds`, `rounds` or `turns`). Foundry 14 has
- * no `rounds` or `turns`, and an expiry-only duration such as Shield's "until the start of your next
- * turn" (`value: null, expiry: "sourceStart"`) has infinite `seconds`, so those were never removed.
- * dnd5e's packs carry 18 effects of that shape, Shield, Guiding Bolt and Vicious Mockery among them.
+ * No numeric countdown is required. An expiry-only duration such as Shield's "until the start of
+ * your next turn" (`value: null, expiry: "sourceStart"`) has infinite `seconds` and `remaining`, and
+ * dnd5e's packs carry 18 effects of that shape.
  *
  * @param {object} effect
  * @returns {boolean}

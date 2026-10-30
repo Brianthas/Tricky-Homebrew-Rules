@@ -15,12 +15,12 @@ const RULE_ID = "repairImportedItems";
  * there (`Actor.<id>.Item.<id>`), or items that no longer exist. Such an item fails validation, so
  * Foundry leaves it out of the actor's items, and a character can lose a whole class.
  *
- * The repair removes those embedded entries. Each points at a copy already on the character or at
- * nothing, so neither is a source anything could be granted from. The granted features are separate
- * items and stay, and `value.added`, which dnd5e reads to remove them on a level-down, is untouched.
+ * The repair removes every embedded entry, which is what the field rejects. In the imported items
+ * it was built against, each pointed at a copy already on the character or at an item that no longer
+ * existed. The granted features are separate items and stay, and `value.added`, which dnd5e reads to
+ * remove them on a level-down, is untouched.
  *
- * A player can run it, because the characters it matters for are theirs. It only touches actors the
- * user owns.
+ * The menu is unrestricted so a player can repair their own character.
  */
 export const repairImportedItems = {
   id: RULE_ID,
