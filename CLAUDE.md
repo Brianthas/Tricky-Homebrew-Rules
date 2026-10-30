@@ -65,7 +65,7 @@ The module version stays in `module.json`, never in `package.json`.
 `eslint.config.mjs` is flat config on eslint 10. `no-undef` is off because fvtt-types covers the
 globals. `no-useless-assignment` is off because the `let x = null; try { x = ... } catch { return
 null; }` idiom in `expire-effects.mjs` and `source-named-effects.mjs` reads as a dead store to it.
-`npm run lint` is clean over 23 files; `npm test` runs the same 113 tests CI does. CI runs both,
+`npm run lint` is clean over 23 files; `npm test` runs the same 121 tests CI does. CI runs both,
 after `npm ci`, so neither depends on being remembered.
 
 Handed a directory, eslint 10 reads every file the flat config does not ignore. Count what a run

@@ -968,7 +968,9 @@ function childName(effect) {
 function matches(child, fresh) {
   if (child.name !== fresh.name) return false;
 
-  const shape = changes => (changes ?? []).map(c => `${c.key}|${c.mode}|${c.value}`).join("~");
+  // Foundry 14 names a change's operation `type` (a string) and deprecates the numeric `mode`,
+  // which Foundry 13 still uses. Reading `type` first never touches the deprecated getter.
+  const shape = changes => (changes ?? []).map(c => `${c.key}|${c.type ?? c.mode}|${c.value}`).join("~");
   return shape(child.changes) === shape(fresh.changes);
 }
 

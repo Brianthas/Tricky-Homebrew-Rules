@@ -13,33 +13,59 @@ const { appliesToCasterOnly } = await import("../scripts/rules/self-effects.mjs"
 const MODULE_ID = "tricky-homebrew-rules";
 
 describe("isExpired", () => {
-  test("an effect with time left has not expired", () => {
-    assert.equal(isExpired(fakeEffect({ duration: { seconds: 60, remaining: 30, expired: false } })), false);
+  // Durations as Foundry 14.369 prepares them, read off live effects: `value`, `units`, `expiry` and
+  // `expired` are stored; `seconds` and `remaining` are derived, and Infinity when `value` is null.
+
+  /** dnd5e 6 Shield, "until the start of your next turn". */
+  const shield = expired => ({
+    isTemporary: true,
+    duration: { value: null, units: "rounds", expiry: "sourceStart", expired, seconds: Infinity, remaining: Infinity }
   });
 
-  test("an effect whose countdown has run out has", () => {
-    assert.equal(isExpired(fakeEffect({ duration: { seconds: 60, remaining: 0, expired: true } })), true);
+  test("an expiry-only effect core has expired is expired", () => {
+    // The shape the countdown check missed: Shield stayed on the caster after its turn came round.
+    assert.equal(isExpired(fakeEffect(shield(true))), true);
   });
 
-  test("a condition with no countdown never expires, however it reports itself", () => {
-    // Foundry calls an effect temporary if it has an expiry OR a finite duration value, which is
-    // true for conditions like Bloodied that have no countdown at all, and those report
-    // `expired: true` permanently. Trusting that switched off every condition on the actor.
-    assert.equal(isExpired(fakeEffect({ duration: { expiry: "turnStart", expired: true } })), false);
-    assert.equal(isExpired(fakeEffect({ duration: { value: null, expired: true } })), false);
+  test("the same effect before its expiry event is not", () => {
+    assert.equal(isExpired(fakeEffect(shield(false))), false);
   });
 
-  test("a countdown with no remaining figure is left alone", () => {
-    assert.equal(isExpired(fakeEffect({ duration: { seconds: 60, expired: true } })), false);
+  test("a one-round effect core has expired is expired", () => {
+    assert.equal(isExpired(fakeEffect({
+      isTemporary: true,
+      duration: { value: 1, units: "rounds", expiry: "turnStart", expired: true, seconds: 6, remaining: 0 }
+    })), true);
+  });
+
+  test("an effect with no duration is never expired, whatever it stores", () => {
+    // Not temporary, so core never tracks it and its derived `expired` is forced false.
+    assert.equal(isExpired(fakeEffect({
+      isTemporary: false,
+      _source: { duration: { value: null, units: "seconds", expiry: null, expired: true } },
+      duration: { value: null, units: "seconds", expiry: null, expired: false, seconds: Infinity, remaining: Infinity }
+    })), false);
+  });
+
+  test("a timed effect with time left after the clock went back is not expired", () => {
+    // Stored true from before the rewind; `_prepareDuration` sets the derived value false again.
+    assert.equal(isExpired(fakeEffect({
+      isTemporary: true,
+      _source: { duration: { value: 60, units: "seconds", expiry: "turnStart", expired: true } },
+      duration: { value: 60, units: "seconds", expiry: "turnStart", expired: false, seconds: 60, remaining: 30 }
+    })), false);
+  });
+
+  test("an effect core has not stored as expired is left alone", () => {
+    assert.equal(isExpired(fakeEffect({
+      isTemporary: true,
+      _source: { duration: { value: null, units: "rounds", expiry: "sourceStart", expired: false } },
+      duration: { value: null, units: "rounds", expiry: "sourceStart", expired: true, seconds: Infinity, remaining: Infinity }
+    })), false);
   });
 
   test("a disabled effect is never expired by this rule", () => {
-    assert.equal(isExpired(fakeEffect({ disabled: true, duration: { seconds: 1, remaining: 0, expired: true } })), false);
-  });
-
-  test("rounds and turns count as countdowns too", () => {
-    assert.equal(isExpired(fakeEffect({ duration: { rounds: 3, remaining: 0, expired: true } })), true);
-    assert.equal(isExpired(fakeEffect({ duration: { turns: 1, remaining: 0, expired: true } })), true);
+    assert.equal(isExpired(fakeEffect({ ...shield(true), disabled: true })), false);
   });
 
   test("nothing at all does not throw", () => {

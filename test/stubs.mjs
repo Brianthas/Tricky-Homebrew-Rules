@@ -63,6 +63,7 @@ export function fakeEffect(data = {}) {
     isSuppressed: data.isSuppressed ?? false,
     isTemporary: data.isTemporary ?? false,
     duration: data.duration ?? {},
+    _source: data._source ?? { duration: { ...(data.duration ?? {}) } },
     type: data.type ?? "base",
     statuses: new Set(data.statuses ?? []),
     parent: data.parent ?? null,

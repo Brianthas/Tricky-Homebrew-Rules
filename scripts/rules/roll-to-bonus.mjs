@@ -435,9 +435,11 @@ function buildEffectData({ actor, message, value, target, form }) {
     }),
     disabled: false,
     duration: (expiry === "rounds") ? { rounds } : {},
+    // Foundry 14 takes the operation as a string `type` and deprecates `CONST.ACTIVE_EFFECT_MODES`,
+    // which Foundry 13 still needs.
     changes: target.keys.map(key => ({
       key,
-      mode: CONST.ACTIVE_EFFECT_MODES.ADD,
+      ...(CONST.ACTIVE_EFFECT_CHANGE_TYPES ? { type: "add" } : { mode: CONST.ACTIVE_EFFECT_MODES.ADD }),
       value: formatBonus(value),
       priority: 20
     })),

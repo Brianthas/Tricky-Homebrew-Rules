@@ -1,5 +1,13 @@
 # Changelog
 
+## 1.0.2
+
+- **Expire Effects removes effects that last until someone's turn.** Shield, Guiding Bolt, Vicious Mockery and the rest of dnd5e's 18 effects whose duration is "until the start (or end) of a turn" carry no number of rounds, and the rule required one. Foundry switched them off on time and they stayed on the actor until the combatant left combat. The rule now acts on Foundry's own verdict: an effect Foundry has stored as expired, and still reports as expired, is removed. Numeric durations behave as before, and an effect with no duration is never touched.
+- **A concentration spell's area is removed when concentration ends.** dnd5e removes the spell's effects from every target but left the area on the scene, still applying its effect to anyone inside. Expire Effects now records which concentration an area belongs to when it is placed and deletes it when that concentration ends. Areas placed before this version carry no record and are left alone.
+- Self Effects reads an activity's effects with `getEffect()` and the cast level from the card's `level`. The `effect` getter and `spellLevel` it used are removed in dnd5e 6.2.
+- Auras and Roll to Bonus write and compare an effect change's operation as Foundry 14's `type` instead of the numeric `mode` and `CONST.ACTIVE_EFFECT_MODES`, which Foundry 16 removes. Foundry 13 still gets `mode`.
+- Verified on Foundry 14.369 with dnd5e 6.0.6: Shield deleted at the start of its caster's next turn while a 1-round effect, a turn-relative Roll to Bonus effect and an effect with no duration each behaved as before; Aura of Life's area and its four effects removed when concentration ended, cast and ended both from the GM and from a player client; Self Effects, Roll to Bonus and Auras run without deprecation warnings.
+
 ## 1.0.1
 
 dnd5e 6's 2024 Aura of Life places an area whose Apply Active Effect behavior gives each ally inside it a fresh copy of the spell's effect. Three rules misread those copies. Measured on Foundry 14.368 with dnd5e 6.0.4, casting a copy of the spell added from the compendium after the update.

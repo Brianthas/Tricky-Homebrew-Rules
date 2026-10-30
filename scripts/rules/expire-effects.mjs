@@ -4,6 +4,9 @@ import { allActors } from "../lib/actors.mjs";
 
 const RULE_ID = "expireEffects";
 
+/** Region flag holding the UUID of the concentration effect the area belongs to. */
+const CONCENTRATION_FLAG = "concentration";
+
 /* -------------------------------------------- */
 /*  Rule Definition                             */
 /* -------------------------------------------- */
@@ -54,6 +57,8 @@ export const expireEffects = {
     Hooks.on("combatTurnChange", () => sweepExpired());
     Hooks.on("updateWorldTime", () => sweepExpired());
     Hooks.on("deleteCombat", () => sweepExpired());
+    Hooks.on("preCreateRegion", region => linkAreaToConcentration(region));
+    Hooks.on("deleteActiveEffect", effect => removeConcentrationAreas(effect));
   },
 
   onReady() {
@@ -139,11 +144,83 @@ async function sweepExpired() {
   }
 }
 
+/* -------------------------------------------- */
+/*  Concentration Areas                         */
+/* -------------------------------------------- */
+
+/**
+ * Record on a spell's area which concentration it belongs to.
+ *
+ * dnd5e ends a concentration's dependent effects but not the area the spell placed:
+ * `ActiveEffect5e#getDependents` keeps a stored dependent only when it shares the caster's actor or
+ * item, and core's RegionDocument does not join dnd5e's dependents registry. Aura of Life's area
+ * stayed on the scene after concentration ended, still applying its effect to allies inside it.
+ *
+ * dnd5e flags the area with the activity that placed it (`flags.dnd5e.activity`) and begins
+ * concentration before placing it, so at creation the caster's concentration on that activity is
+ * this casting's. Its UUID goes on the region, and `removeConcentrationAreas` matches on it. A cast
+ * without concentration finds none and the area is left alone.
+ *
+ * Runs on the client creating the region, before it is saved.
+ *
+ * @param {object} region  The region about to be created.
+ */
+function linkAreaToConcentration(region) {
+  try {
+    if (!isRuleEnabled(RULE_ID)) return;
+    const uuid = region.getFlag("dnd5e", "activity");
+    if (!uuid) return;
+
+    const actor = fromUuidSync(uuid, { strict: false })?.actor;
+    const concentration = actor?.effects.find(effect => isConcentration(effect)
+      && (effect.getFlag("dnd5e", "activity")?.uuid === uuid));
+    if (concentration) region.updateSource({ [`flags.${MODULE_ID}.${CONCENTRATION_FLAG}`]: concentration.uuid });
+  } catch (err) {
+    console.error(`${MODULE_ID} | Failed to link a spell's area to its concentration.`, err);
+  }
+}
+
+/**
+ * When concentration ends, delete the areas linked to it by `linkAreaToConcentration`.
+ *
+ * Runs on the active GM alone, for the same reason as the sweep.
+ *
+ * @param {object} effect  The deleted effect.
+ */
+async function removeConcentrationAreas(effect) {
+  try {
+    if (!game.users.activeGM?.isSelf) return;
+    if (!isRuleEnabled(RULE_ID)) return;
+    if (!isConcentration(effect)) return;
+
+    for (const scene of game.scenes) {
+      const ids = scene.regions
+        .filter(region => region.getFlag(MODULE_ID, CONCENTRATION_FLAG) === effect.uuid)
+        .map(region => region.id);
+      if (ids.length) await scene.deleteEmbeddedDocuments("Region", ids);
+    }
+  } catch (err) {
+    console.error(`${MODULE_ID} | Failed to remove the area of a spell whose concentration ended.`, err);
+  }
+}
+
 /**
  * Is this effect past its duration?
  *
- * Foundry already does the arithmetic and exposes the answer, including the rounds and turns cases,
- * so this rule never has to work out durations itself.
+ * Foundry decides, and this rule reads the decision. On each combat event and world time change,
+ * core's `ActiveEffectRegistry#refresh` expires a tracked effect when its remaining duration is
+ * reached and the event matches its `expiry`, then writes `duration.expired: true` to the stored
+ * effect (`CONFIG.ActiveEffect.expiryAction` "update"). Only temporary effects with a start are
+ * tracked, so a condition with no duration is never written as expired.
+ *
+ * The stored value and the derived one must both say expired. `ActiveEffect#_prepareDuration`
+ * forces the derived value false for an effect that is not temporary, and for a timed effect with
+ * time left after the clock is wound back.
+ *
+ * An earlier version required a numeric countdown (`seconds`, `rounds` or `turns`). Foundry 14 has
+ * no `rounds` or `turns`, and an expiry-only duration such as Shield's "until the start of your next
+ * turn" (`value: null, expiry: "sourceStart"`) has infinite `seconds`, so those were never removed.
+ * dnd5e's packs carry 18 effects of that shape, Shield, Guiding Bolt and Vicious Mockery among them.
  *
  * @param {object} effect
  * @returns {boolean}
@@ -151,23 +228,9 @@ async function sweepExpired() {
 export function isExpired(effect) {
   if (!effect) return false;
   if (effect.disabled) return false;
-
-  const duration = effect.duration ?? {};
-
-  // `isTemporary` and `expired` are not enough on their own. Foundry defines isTemporary as
-  // `!!duration.expiry || Number.isFinite(duration.value)`, which is true for conditions like
-  // Bloodied that have no countdown whatsoever, and those report `expired: true` permanently.
-  // Trusting those two fields alone switched off every condition on the actor.
-  //
-  // An effect can only run out of time if it was given time to begin with, so require a real
-  // countdown. This still covers concentration, whose marker carries a genuine duration.
-  const hasCountdown = Number.isFinite(duration.seconds)
-    || Number.isFinite(duration.rounds)
-    || Number.isFinite(duration.turns);
-  if (!hasCountdown) return false;
-  if (!Number.isFinite(duration.remaining)) return false;
-
-  return duration.expired === true;
+  if (!effect.isTemporary) return false;
+  if (effect._source?.duration?.expired !== true) return false;
+  return effect.duration?.expired === true;
 }
 
 /**

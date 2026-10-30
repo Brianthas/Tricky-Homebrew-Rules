@@ -115,7 +115,10 @@ async function onUsageMessage(activity, card) {
     if (!game.user.isGM && !actor.isOwner) return;
 
     for (const entry of activity.effects ?? []) {
-      const effect = entry?.effect;
+      // dnd5e 6 resolves an activity's effect with `getEffect()`, which returns a Promise when the
+      // entry references the effect by UUID. The `effect` getter it replaces returns the same thing
+      // and is removed in dnd5e 6.2. Older versions have only `effect`.
+      const effect = typeof entry?.getEffect === "function" ? await entry.getEffect() : entry?.effect;
       if (!effect) continue;
 
       // Enchantments modify an item rather than buffing a creature, so they are never a self buff.
@@ -177,11 +180,14 @@ async function applyToCaster(effect, actor, card) {
   const concentration = actor.effects.get(card?.system?.concentration);
   const origin = concentration ?? effect;
 
+  // dnd5e 6 keeps the cast level in `system.level` and still writes it to the `spellLevel` flag.
+  // `system.spellLevel` is a deprecated alias removed in dnd5e 6.2.
+  const system = card?.system ?? {};
   const flags = {
     dnd5e: {
       dependentOn: origin.uuid,
-      scaling: card?.system?.scaling,
-      spellLevel: card?.system?.spellLevel
+      scaling: system.scaling,
+      spellLevel: "level" in system ? system.level : system.spellLevel
     }
   };
 

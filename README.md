@@ -231,6 +231,8 @@ Foundry 14 marks an expired effect `duration.expired` and stops applying it, but
 
 The rule checks on turn changes, on world time changes, when a combat ends, and once at startup to catch anything that expired while nobody was watching.
 
+It acts on Foundry's own verdict: an effect counts as expired once Foundry has marked it so, which covers numeric durations and effects that last until the start or end of someone's turn alike. Shield, Guiding Bolt and Vicious Mockery are the latter.
+
 ### Concentration
 
 Concentration is handled the way the rules describe it, and the direction matters.
@@ -241,6 +243,8 @@ dnd5e already puts the concentration marker on the **caster**, and a concentrati
 - **The spell's duration runs out**, and rather than quietly removing the target's effect and leaving the caster still concentrating on nothing, this ends the **caster's** concentration. dnd5e's own cascade then clears the effect from every target.
 
 In both directions: you lose the effect, the caster loses the concentration, in one step.
+
+**The spell's area goes with it.** dnd5e removes a concentration spell's effects from every target when concentration ends, but leaves the area it placed on the scene, still applying its effect to anyone inside. Aura of Life is one. When the area is placed, this rule records which concentration it belongs to, and deletes the area when that concentration ends. Areas placed before version 1.0.2 carry no record and are left alone.
 
 ### Settings
 
