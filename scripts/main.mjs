@@ -7,6 +7,7 @@ import { expireEffects } from "./rules/expire-effects.mjs";
 import { auras } from "./rules/auras.mjs";
 import { selfEffects } from "./rules/self-effects.mjs";
 import { effectsPanel } from "./rules/effects-panel.mjs";
+import { repairImportedItems } from "./rules/repair-imported-items.mjs";
 import { runSelfCheck } from "./lib/selfcheck.mjs";
 
 /**
@@ -20,7 +21,10 @@ import { runSelfCheck } from "./lib/selfcheck.mjs";
  *   registerPatches()  Called during `init`. Register libWrapper patches and hooks.
  *   onReady()          Called during `ready`, once the world and other modules exist.
  */
-const RULES = [criticalDice, maxHealing, rollToBonus, sourceNamedEffects, expireEffects, auras, selfEffects, effectsPanel];
+const RULES = [
+  criticalDice, maxHealing, rollToBonus, sourceNamedEffects, expireEffects, auras, selfEffects, effectsPanel,
+  repairImportedItems
+];
 
 Hooks.once("init", () => {
   if (!CONFIG.DND5E) {

@@ -12,6 +12,7 @@ A collection of house rules for the Foundry VTT **dnd5e** system. Each rule is i
 | [Auras](#auras) | An effect radiates to tokens within a radius and keeps up as they move. |
 | [Self Effects](#self-effects) | A spell that can only target its caster applies itself, with no button to press. |
 | [Effects Panel](#effects-panel) | What is running on the selected token, as icons beside the sidebar. |
+| [Repair Imported Items](#repair-imported-items) | A settings button that repairs imported classes and backgrounds dnd5e 6 refuses to load. |
 
 ---
 
@@ -493,10 +494,24 @@ Per aura, on the effect itself: radius, reaches (anyone, allies, enemies), affec
 
 ---
 
+## Repair Imported Items
+
+A button in the module settings, not a rule, so it has no switch.
+
+dnd5e 6 refuses to load a class, subclass, species or background whose Item Grant advancement lists the character's own items as the things it grants. Some importers write exactly that: the Sorcerer class lists the character's own copy of Font of Magic rather than the compendium one. dnd5e 5 accepted it. On dnd5e 6 the item fails validation, disappears from the sheet, and a character can lose a whole class.
+
+The button removes those links. Each points at a feature already on the character, or at nothing, so neither is something the advancement could grant. The features stay on the character, and the record dnd5e keeps of what it granted, which it uses to remove features on a level-down, is untouched.
+
+It lists every item and how many links it removes, and asks first. Anyone can run it, and it only touches characters they own, so a player can repair their own character without the GM. It covers world actors; an unlinked token keeps its own copy of its items and is not covered.
+
+Foundry stores the repair but cannot update an item that failed to load in the open window, so the result asks everyone connected to reload. The count it reports is read back from the database, not from the open window.
+
+---
+
 ## Requirements
 
 - Foundry VTT v13 or v14
-- dnd5e system 4.0.0+ (verified against 5.3.3 on Foundry 13 and 6.0.4 on Foundry 14)
+- dnd5e system 4.0.0+ (verified against 5.3.3 on Foundry 13 and 6.0.6 on Foundry 14)
 - [libWrapper](https://github.com/ruipin/fvtt-lib-wrapper)
 
 ## Tests
@@ -518,6 +533,7 @@ scripts/
     wrapper.mjs         defensive libWrapper registration
     settings.mjs        master + per-rule enabled checks
     actors.mjs          world actors plus unlinked token actors
+    selfcheck.mjs       startup check that the Foundry and dnd5e APIs the rules use exist
   rules/
     critical-dice.mjs   the Critical Dice rule
     max-healing.mjs     the Max Healing rule
@@ -525,6 +541,10 @@ scripts/
     source-named-effects.mjs  the Effect Names rule
     expire-effects.mjs        the Expire Effects rule
     auras.mjs                 the Auras rule
+    known-auras.mjs           radii and options for auras the Auras rule recognises
+    self-effects.mjs          the Self Effects rule
+    effects-panel.mjs         the Effects Panel rule
+    repair-imported-items.mjs the Repair Imported Items tool
 ```
 
 Each rule is one file exporting `{ id, registerSettings?, registerPatches?, onReady? }`, listed in `main.mjs`'s `RULES` array. Nothing else in the module needs to know a rule exists. Rules are run through a wrapper that isolates failures, so one rule broken by a dnd5e update can't stop the others from registering.
